@@ -27,10 +27,11 @@ func ConnectDB(){
 	if err != nil {
 		log.Fatal("Failed to connect database", err)
 	}
-	err = db.AutoMigrate(&models.Comment{}, &models.Reservation{})
+	err = db.AutoMigrate(&models.Comment{}, &models.Reservation{}, &models.User{})
 	if err != nil {
 		log.Fatal("Failed to migrate database", err)
 	}
+	seedUsers(db)
 	DB = db
 	log.Println("Database connect and migrate")
 }
