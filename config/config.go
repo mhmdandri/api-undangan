@@ -6,25 +6,20 @@ import (
 
 	"github.com/joho/godotenv"
 )
-
-
 type Config struct {
 	AppPort		string
-
 	DBHost		string
 	DBPort		string
 	DBUser		string
 	DBPassword	string
 	DBName		string
 	DBSSLMode	string
-
 	MailtrapToken    string
   MailtrapFromEmail string
   MailtrapFromName  string
 }
 
 var Cfg *Config
-
 func LoadConfig(){
 	err := godotenv.Load()
 	if err != nil {
