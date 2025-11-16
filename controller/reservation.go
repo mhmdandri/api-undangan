@@ -7,6 +7,7 @@ import (
 	"api-undangan/models"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -14,7 +15,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
+const maxReservationsCodeAttempts = 5
 type ReservationRequest struct {
 	Name			string `json:"name" binding:"required"`
 	IsPresent		*bool   `json:"is_present" binding:"required"`
@@ -73,6 +76,12 @@ func ConfirmReservation(c *gin.Context){
         })
         return
     }
+		if !reservation.IsPresent{
+				c.JSON(http.StatusBadRequest, gin.H{
+					"message": "Reservasi tamu memilih tidak hadir",
+				})
+				return
+		}
     reservation.Status = "hadir"
 		if err := database.DB.Save(&reservation).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{
@@ -93,30 +102,42 @@ func CreateReservation(c *gin.Context){
 		})
 		return
 	}
-	code, err := generateUniqueReservationCode()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to generate reservation code",
+	var reservation models.Reservation
+	for attempt := 0; attempt < maxReservationsCodeAttempts; attempt++ {
+		code, err := generateUniqueReservationCode()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "failed to generate reservation code",
+			})
+			return
+		}
+		reservation = models.Reservation{
+			Name: req.Name,
+			IsPresent: *req.IsPresent,
+			Email: req.Email,
+			Code: code,
+			TotalGuests: req.TotalGuests,
+		}
+		if err := database.DB.Create(&reservation).Error; err != nil{
+			if errors.Is(err, gorm.ErrDuplicatedKey){
+				continue
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "failed to create reservation",
+			})
+			return
+		}
+		if reservation.IsPresent {
+			go sendReservationEmailByProvider(reservation)
+		}
+		c.JSON(http.StatusCreated, gin.H{
+			"data": reservation,
+			"message": "Reservation created successfully",
 		})
 		return
 	}
-	reservation := models.Reservation{
-		Name: req.Name,
-		IsPresent: *req.IsPresent,
-		Email: req.Email,
-        Code: code,
-        TotalGuests: req.TotalGuests,
-	}
-	if err := database.DB.Create(&reservation).Error; err != nil{
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to create reservation",
-		})
-		return
-	}
-	go sendReservationEmailByProvider(reservation)
-	c.JSON(http.StatusCreated, gin.H{
-		"data": reservation,
-		"message": "Reservation created successfully",
+	c.JSON(http.StatusInternalServerError, gin.H{
+		"error": "failed to create reservation, please try again",
 	})
 }
 func sendReservationEmailByProvider(r models.Reservation) {

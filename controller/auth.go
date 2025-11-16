@@ -45,5 +45,10 @@ func Login(c *gin.Context){
 	
 	c.JSON(http.StatusOK, gin.H{
 		"token": token,
+		"user": gin.H{
+			"name": user.Name,
+			"email": user.Email,
+			"role": user.Role,
+		},
 	})
 }
