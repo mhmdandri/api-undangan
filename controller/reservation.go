@@ -70,9 +70,8 @@ func ConfirmReservation(c *gin.Context){
         return
     }
     if strings.EqualFold(reservation.Status, "hadir") {
-        c.JSON(http.StatusOK, gin.H{
+        c.JSON(http.StatusBadRequest, gin.H{
             "message": "Reservation already confirmed",
-            "data":    reservation,
         })
         return
     }
