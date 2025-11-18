@@ -16,7 +16,7 @@ func AuthMiddleware() gin.HandlerFunc{
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"message": "token diperlukan",
+				"error": "token diperlukan",
 			})
 			return
 		}
@@ -29,7 +29,7 @@ func AuthMiddleware() gin.HandlerFunc{
 		}, jwt.WithIssuer(config.Cfg.JWTIssuer), jwt.WithAllAudiences(config.Cfg.JWTAudience))
 		if err != nil || !token.Valid {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"message": "token tidak valid",
+				"error": "token tidak valid",
 			})
 			return
 		}

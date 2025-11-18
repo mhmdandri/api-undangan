@@ -37,6 +37,7 @@ func GetReservations(c *gin.Context){
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"data": reservations,
+		"message": "Get reservations successfully!",
 	})
 }
 func FindReservationByCode(c *gin.Context){
@@ -50,6 +51,7 @@ func FindReservationByCode(c *gin.Context){
     }
     c.JSON(http.StatusOK, gin.H{
         "data": reservation,
+				"message": "Get reservation successfully!",
     })
 }
 
@@ -71,13 +73,13 @@ func ConfirmReservation(c *gin.Context){
     }
     if strings.EqualFold(reservation.Status, "hadir") {
         c.JSON(http.StatusBadRequest, gin.H{
-            "message": "Reservation already confirmed",
+            "error": "Reservation already confirmed",
         })
         return
     }
 		if !reservation.IsPresent{
 				c.JSON(http.StatusBadRequest, gin.H{
-					"message": "Reservasi tamu memilih tidak hadir",
+					"error": "Reservasi tamu memilih tidak hadir",
 				})
 				return
 		}
@@ -218,14 +220,14 @@ func sendReservationEmail(r models.Reservation){
     data := email.WeddingEmailData{
 		Name:           r.Name,       
 		Email:          r.Email,      
-		EventDate:           "02 January 2006", 
+		EventDate:           "31 Maret 2025", 
 		EventTime:           "09:00",           
 		VenueName:           "Gedung A",
 		VenueAddress:        "Jakarta, Indonesia",
 		ReservationCode:     r.Code, // misal kode unik
 		ReservationDetailURL: "https://wedding.mohaproject.dev",
-		BrideName:           "Cica Purwanti", // bisa dari config
-		GroomName:           "Muhamad Andriyansyah",   // bisa dari config
+		BrideName:           "Jane Doe", // bisa dari config
+		GroomName:           "John Doe",   // bisa dari config
 		Year:                time.Now().Year(),
 	}
     htmlBody, err := email.BuildWeddingReservationEmail(data)

@@ -1,11 +1,15 @@
 package controller
 
 import (
+	"api-undangan/config"
 	"api-undangan/database"
 	"api-undangan/models"
+	"errors"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 
@@ -24,6 +28,7 @@ func GetComments(c *gin.Context){
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"data": comments,
+		"message": "Get comments successfully!",
 	})
 }
 
@@ -35,9 +40,31 @@ func PostComment(c *gin.Context){
 		})
 		return
 	}
+	if config.ContainsBadword(req.Message) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Jangan berkata kasar ya kak",
+		})
+		return
+	}
+	lastMinute := time.Now().Add(-1 * time.Minute)
+	var recent models.Comment
+	err := database.DB.Where("ip_address = ? AND created_at >= ?", c.ClientIP(), lastMinute).First(&recent).Error
+	if err == nil {
+		c.JSON(http.StatusTooManyRequests, gin.H{
+			"error": "Tunggu 1 menit sebelum ucapan lagi",
+		})
+		return
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Cek spam gagal",
+		})
+		return
+	}
 	comment := models.Comment{
 		Name: req.Name,
 		Message: req.Message,
+		IPAddress: c.ClientIP(),
 	}
 	if err := database.DB.Create(&comment).Error; err != nil{
 		c.JSON(http.StatusInternalServerError, gin.H{

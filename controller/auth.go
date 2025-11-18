@@ -19,23 +19,23 @@ func Login(c *gin.Context){
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"message": err.Error(),
+			"error": err.Error(),
 		})
 		return
 	}
 	var user models.User
 	if err := database.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
-    c.JSON(http.StatusUnauthorized, gin.H{"message": "email atau password salah"})
+    c.JSON(http.StatusUnauthorized, gin.H{"error": "email atau password salah"})
     return
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-    c.JSON(http.StatusUnauthorized, gin.H{"message": "email atau password salah"})
+    c.JSON(http.StatusUnauthorized, gin.H{"error": "email atau password salah"})
     return
 	}
 	token, err := auth.GenerateToken(user.ID, user.Role)
 	if err != nil{
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": "gagal membuat token",
+			"error": "gagal membuat token",
 		})
 		return
 	}

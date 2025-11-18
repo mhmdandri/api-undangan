@@ -12,6 +12,8 @@ import (
 
 func main() {
 	config.LoadConfig()
+	
+	config.LoadBadWords("config/badword.txt")
 
 	database.ConnectDB()
 	
