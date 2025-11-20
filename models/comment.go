@@ -6,5 +6,6 @@ type Comment struct {
 	Name			string `json:"name" gorm:"size:100;not null"`
 	Message			string `json:"message" gorm:"type:text;not null"`
 	IPAddress string `json:"-" gorm:"size:45;index"`
+	Fingerprint string `json:"-" gorm:"size:60;index"`
 	CreatedAt time.Time `json:"created_at"`
 }
