@@ -42,9 +42,9 @@ func clientFingerprint(c *gin.Context) string {
 		return fp
 	}
 	fp := uuid.NewString()
-	secure := c.Request.TLS != nil || strings.EqualFold(c.GetHeader("X-Forwarded-Proto"), "https")
+	secure := c.Request.TLS != nil || strings.EqualFold(c.GetHeader("X-Forwarded-Proto"), "https") || strings.EqualFold(c.GetHeader("X-Forwarded-Scheme"), "https")
 	sameSite := http.SameSiteNoneMode
-	if !secure && strings.Contains(c.Request.Host, "localhost"){
+	if !secure {
 		sameSite = http.SameSiteLaxMode
 	}
 	c.SetSameSite(sameSite)
@@ -67,23 +67,39 @@ func PostComment(c *gin.Context){
 		return
 	}
 	fingerprint := clientFingerprint(c)
-	lastMinute := time.Now().Add(-time.Minute)
-	var recent models.Comment
-	err := database.DB.Where("fingerprint = ? AND created_at >= ?", fingerprint, lastMinute).First(&recent).Error
-	if err == nil {
+	ip := c.ClientIP()
+	now := time.Now()
+	lastMinute := now.Add(-time.Minute)
+	var recentFp models.Comment
+	errFp := database.DB.Where("fingerprint = ? AND created_at >= ?", fingerprint, lastMinute).First(&recentFp).Error
+	if errFp == nil {
 		c.JSON(http.StatusTooManyRequests, gin.H{
 			"error": "Tunggu 1 menit sebelum ucapan lagi",
 			"code": "RATE_LIMIT",
 		})
 		return
 	}
-
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
+	if !errors.Is(errFp, gorm.ErrRecordNotFound){
+		 c.JSON(http.StatusInternalServerError, gin.H{
+        "error": "Cek spam gagal",
+        "code":  "CHECK_SPAM_FAILED",
+    })
+    return
+	}
+	var countIP int64
+	if err := database.DB.Model(&models.Comment{}).Where("ip_address = ? AND created_at >= ?", ip, lastMinute).Count(&countIP).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Cek spam gagal",
-			"code": "CHECK_SPAM_FAILED",
-		})
-		return
+        "error": "Cek spam gagal",
+        "code":  "CHECK_SPAM_FAILED",
+    })
+    return
+	}
+	if countIP >= 5 {
+    c.JSON(http.StatusTooManyRequests, gin.H{
+        "error": "Terlalu banyak komentar dari jaringan ini, coba sebentar lagi",
+        "code":  "RATE_LIMIT_IP",
+    })
+    return
 	}
 	comment := models.Comment{
 		Name: req.Name,
