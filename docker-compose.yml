@@ -6,7 +6,7 @@ services:
     container_name: api-undangan-app
     restart: unless-stopped
     ports:
-      - "${APP_PORT_HOST:-8080}:8080"
+      - "${APP_PORT_HOST:-8888}:8080"
     env_file:
       - path: .env
         required: false
