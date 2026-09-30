@@ -14,15 +14,20 @@ import (
 var DB *gorm.DB
 func ConnectDB(){
 	c := config.Cfg
-	dsn := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=Asia/Jakarta",
-		c.DBHost,
-		c.DBUser,
-		c.DBPassword,
-		c.DBName,
-		c.DBPort,
-		c.DBSSLMode,
-	)
+	var dsn string
+	if c.DatabaseURL != "" {
+		dsn = c.DatabaseURL
+	} else {
+		dsn = fmt.Sprintf(
+			"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=Asia/Jakarta",
+			c.DBHost,
+			c.DBUser,
+			c.DBPassword,
+			c.DBName,
+			c.DBPort,
+			c.DBSSLMode,
+		)
+	}
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect database", err)

@@ -3,12 +3,14 @@ package config
 import (
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
 )
 type Config struct {
 	AppPort		string
+	DatabaseURL string
 	DBHost		string
 	DBPort		string
 	DBUser		string
@@ -35,8 +37,16 @@ func LoadConfig(){
 		expiresIn = time.Hour * 24
 	}
 	
+	port := os.Getenv("APP_PORT")
+	if port == "" {
+		port = ":8080"
+	} else if !strings.HasPrefix(port, ":") {
+		port = ":" + port
+	}
+	
 	Cfg = &Config{
-		AppPort:     os.Getenv("APP_PORT"),
+		AppPort:     port,
+		DatabaseURL: os.Getenv("DATABASE_URL"),
 		DBHost:      os.Getenv("DB_HOST"),
 		DBPort:      os.Getenv("DB_PORT"),
 		DBUser:      os.Getenv("DB_USER"),

@@ -1,0 +1,40 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: api-undangan-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT_HOST:-8080}:8080"
+    env_file:
+      - path: .env
+        required: false
+
+  # Service PostgreSQL lokal (Opsional).
+  # Karena Anda menggunakan database cloud (Prisma Postgres), service ini dinonaktifkan secara default agar hemat resource server.
+  # Jika suatu saat ingin menggunakan PostgreSQL lokal di server, jalankan:
+  # docker compose --profile local-db up -d
+  db:
+    profiles:
+      - local-db
+    image: postgres:16-alpine
+    container_name: api-undangan-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-supersecretpassword}
+      POSTGRES_DB: ${DB_NAME:-undangan_db}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT_EXPOSE:-127.0.0.1:5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-undangan_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+    driver: local
