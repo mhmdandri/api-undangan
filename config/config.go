@@ -39,7 +39,7 @@ func LoadConfig(){
 	
 	port := os.Getenv("APP_PORT")
 	if port == "" {
-		port = ":8080"
+		port = ":8888"
 	} else if !strings.HasPrefix(port, ":") {
 		port = ":" + port
 	}

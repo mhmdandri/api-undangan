@@ -27,6 +27,6 @@ COPY --from=builder /app/server /app/server
 # Copy badword dictionary file needed by config.LoadBadWords
 COPY --from=builder /app/config/badword.txt /app/config/badword.txt
 
-EXPOSE 8080
+EXPOSE 8888
 
 CMD ["/app/server"]
