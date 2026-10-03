@@ -13,6 +13,7 @@ func RegisterRoutes(r *gin.Engine){
 		api.POST("/comments", controller.PostComment)
 
 		api.GET("/reservations", controller.GetReservations)
+		api.GET("/reservations/preview-email", controller.PreviewReservationEmail)
 		api.POST("/reservations", controller.CreateReservation)
 		api.GET("/reservations/:code", controller.FindReservationByCode)
 		api.POST("/login", controller.Login)

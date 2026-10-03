@@ -149,6 +149,7 @@ func sendReservationEmailByProvider(r models.Reservation) {
 	}
 	sendReservationEmail(r)
 }
+
 func sendReservationEmailIcloud(r models.Reservation) {
 	cfg := config.Cfg
 
@@ -157,13 +158,14 @@ func sendReservationEmailIcloud(r models.Reservation) {
 		return
 	}
 	url := "https://send.api.mailtrap.io/api/send"
-	textBody := fmt.Sprintf(
-		"Hallo %s,\n\nTerima kasih sudah melakukan reservasi.\n\nNama: %s\nEmail: %s\nKode Reservasi: %s\nMohon simpan kode ini dan tunjukkan saat hadir di lokasi.\n\nSampai jumpa!",
-		r.Name,
-		r.Name,
-		r.Email,
-		r.Code,
-	)
+
+	data := email.DefaultWeddingEmailData(r.Name, r.Email, r.Code, r.TotalGuests)
+	htmlBody, err := email.BuildWeddingReservationEmailIcloud(data)
+	if err != nil {
+		fmt.Println("failed build icloud email template:", err)
+		return
+	}
+	textBody := email.BuildWeddingReservationPlainText(data)
 
 	payload := map[string]interface{}{
 		"from": map[string]string{
@@ -173,11 +175,16 @@ func sendReservationEmailIcloud(r models.Reservation) {
 		"to": []map[string]string{
 			{
 				"email": r.Email,
+				"name":  r.Name,
 			},
 		},
-		"subject": "Konfirmasi Reservasi Wedding",
-		"text":    textBody,
+		"subject":  fmt.Sprintf("Konfirmasi Kehadiran: %s - The Wedding of Andri & Cica", r.Code),
+		"html":     htmlBody,
+		"text":     textBody,
 		"category": "Wedding Reservation",
+		"headers": map[string]string{
+			"X-Entity-Ref-ID": r.Code,
+		},
 	}
 
 	bodyBytes, err := json.Marshal(payload)
@@ -203,40 +210,30 @@ func sendReservationEmailIcloud(r models.Reservation) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		fmt.Println("Mailtrap returned non-2xx status:", resp.Status)
+		fmt.Println("Mailtrap returned non-2xx status for iCloud:", resp.Status)
 		return
 	}
 
-	fmt.Println("Reservation email sent to:", r.Email)
+	fmt.Println("Reservation email (iCloud) sent successfully to:", r.Email)
 }
-func sendReservationEmail(r models.Reservation){
+
+func sendReservationEmail(r models.Reservation) {
 	cfg := config.Cfg
 
-    if cfg.MailtrapToken == "" {
-        fmt.Println("MAILTRAP_TOKEN is empty, skip sending email")
-        return
-    }
-   
-    data := email.WeddingEmailData{
-		Name:           r.Name,       
-		Email:          r.Email,      
-		EventDate:           "31 Maret 2025", 
-		EventTime:           "09:00",           
-		VenueName:           "Gedung A",
-		VenueAddress:        "Jakarta, Indonesia",
-		ReservationCode:     r.Code, // misal kode unik
-		ReservationDetailURL: "https://wedding.mohaproject.dev",
-		BrideName:           "Jane Doe", // bisa dari config
-		GroomName:           "John Doe",   // bisa dari config
-		Year:                time.Now().Year(),
+	if cfg.MailtrapToken == "" {
+		fmt.Println("MAILTRAP_TOKEN is empty, skip sending email")
+		return
 	}
-    htmlBody, err := email.BuildWeddingReservationEmail(data)
+
+	data := email.DefaultWeddingEmailData(r.Name, r.Email, r.Code, r.TotalGuests)
+	htmlBody, err := email.BuildWeddingReservationEmail(data)
 	if err != nil {
 		fmt.Println("failed build email template:", err)
 		return
 	}
+	textBody := email.BuildWeddingReservationPlainText(data)
 
-    url := "https://send.api.mailtrap.io/api/send"
+	url := "https://send.api.mailtrap.io/api/send"
 
 	payload := map[string]interface{}{
 		"from": map[string]string{
@@ -246,11 +243,16 @@ func sendReservationEmail(r models.Reservation){
 		"to": []map[string]string{
 			{
 				"email": r.Email,
+				"name":  r.Name,
 			},
 		},
-		"subject": "Konfirmasi Reservasi Wedding",
-		"html":    htmlBody, // PENTING: pakai html, bukan text
+		"subject":  fmt.Sprintf("Konfirmasi Kehadiran: %s - The Wedding of Andri & Cica", r.Code),
+		"html":     htmlBody,
+		"text":     textBody,
 		"category": "Wedding Reservation",
+		"headers": map[string]string{
+			"X-Entity-Ref-ID": r.Code,
+		},
 	}
 
 	bodyBytes, err := json.Marshal(payload)
@@ -280,7 +282,39 @@ func sendReservationEmail(r models.Reservation){
 		return
 	}
 
-	fmt.Println("Reservation email sent to:", r.Email)
+	fmt.Println("Reservation email sent successfully to:", r.Email)
+}
+
+// PreviewReservationEmail lets anyone preview the rendered email (HTML or plain text) in browser
+func PreviewReservationEmail(c *gin.Context) {
+	name := c.DefaultQuery("name", "Tamu Undangan")
+	code := c.DefaultQuery("code", "74921")
+	provider := strings.ToLower(c.DefaultQuery("provider", "gmail"))
+	format := strings.ToLower(c.DefaultQuery("format", "html"))
+
+	data := email.DefaultWeddingEmailData(name, "preview@example.com", code, 2)
+
+	if format == "text" {
+		c.Header("Content-Type", "text/plain; charset=utf-8")
+		c.String(http.StatusOK, email.BuildWeddingReservationPlainText(data))
+		return
+	}
+
+	var htmlContent string
+	var err error
+	if provider == "icloud" {
+		htmlContent, err = email.BuildWeddingReservationEmailIcloud(data)
+	} else {
+		htmlContent, err = email.BuildWeddingReservationEmail(data)
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Header("Content-Type", "text/html; charset=utf-8")
+	c.String(http.StatusOK, htmlContent)
 }
 
 func generateUniqueReservationCode() (string, error) {
