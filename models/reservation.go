@@ -9,6 +9,7 @@ type Reservation struct {
 	Code 			 string `json:"code" gorm:"size:50;not null;unique"`
 	TotalGuests			 int    `json:"total_guests" gorm:"size:3:not null;default:1; max:3"`
 	Status			 string `json:"status" gorm:"size:50;not null;default:'tidak_datang'"`
+	AttendedAt		 *time.Time `json:"attended_at,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

@@ -27,6 +27,10 @@ type ReservationRequest struct {
 type ConfirmReservationRequest struct {
     Code  string `json:"code" binding:"required"`
 }
+type GuestCheckInRequest struct {
+	Code         string `json:"code" binding:"required"`
+	ActualGuests int    `json:"actual_guests" binding:"omitempty,min=1,max=3"`
+}
 func GetReservations(c *gin.Context){
 	var reservations []models.Reservation
 	if err := database.DB.Order("created_at desc").Find(&reservations).Error; err != nil{
@@ -77,13 +81,15 @@ func ConfirmReservation(c *gin.Context){
         })
         return
     }
-		if !reservation.IsPresent{
-				c.JSON(http.StatusBadRequest, gin.H{
-					"error": "Reservasi tamu memilih tidak hadir",
-				})
-				return
+		if !reservation.IsPresent {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Reservasi tamu memilih tidak hadir",
+			})
+			return
 		}
-    reservation.Status = "hadir"
+		now := time.Now()
+		reservation.Status = "hadir"
+		reservation.AttendedAt = &now
 		if err := database.DB.Save(&reservation).Error; err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{
 						"error": "Failed to confirm reservation",
@@ -95,6 +101,110 @@ func ConfirmReservation(c *gin.Context){
 			"message": "Reservation confirmed successfully",
 		})
 	}
+
+// CheckInLookup is a public endpoint to check guest details by reservation code
+func CheckInLookup(c *gin.Context) {
+	code := strings.TrimSpace(c.Param("code"))
+	if code == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "error",
+			"error":  "Kode reservasi wajib diisi",
+		})
+		return
+	}
+
+	var reservation models.Reservation
+	if err := database.DB.Where("code = ?", code).First(&reservation).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"status": "not_found",
+			"error":  "Kode reservasi tidak valid atau tidak ditemukan. Mohon pastikan kode sesuai dengan email konfirmasi Anda.",
+		})
+		return
+	}
+
+	isAlreadyCheckedIn := strings.EqualFold(reservation.Status, "hadir")
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
+		"message": "Data reservasi ditemukan",
+		"data": gin.H{
+			"id":                    reservation.ID,
+			"name":                  reservation.Name,
+			"email":                 reservation.Email,
+			"code":                  reservation.Code,
+			"total_guests":          reservation.TotalGuests,
+			"status":                reservation.Status,
+			"is_present":            reservation.IsPresent,
+			"is_already_checked_in": isAlreadyCheckedIn,
+			"attended_at":           reservation.AttendedAt,
+			"created_at":            reservation.CreatedAt,
+		},
+	})
+}
+
+// GuestCheckIn is a public endpoint allowing guests to submit their reservation code to confirm arrival
+func GuestCheckIn(c *gin.Context) {
+	var req GuestCheckInRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "error",
+			"error":  "Kode reservasi wajib diisi",
+		})
+		return
+	}
+
+	code := strings.TrimSpace(req.Code)
+	if code == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "error",
+			"error":  "Kode reservasi tidak boleh kosong",
+		})
+		return
+	}
+
+	var reservation models.Reservation
+	if err := database.DB.Where("code = ?", code).First(&reservation).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"status": "not_found",
+			"error":  "Kode reservasi tidak valid atau tidak ditemukan. Mohon cek kembali kode di email Anda.",
+		})
+		return
+	}
+
+	// Cek apakah tamu sudah check-in sebelumnya
+	if strings.EqualFold(reservation.Status, "hadir") {
+		c.JSON(http.StatusOK, gin.H{
+			"status":  "already_checked_in",
+			"message": fmt.Sprintf("Halo %s, Anda sudah melakukan check-in kehadiran sebelumnya!", reservation.Name),
+			"data":    reservation,
+		})
+		return
+	}
+
+	// Update status kehadiran tamu
+	now := time.Now()
+	reservation.Status = "hadir"
+	reservation.IsPresent = true
+	reservation.AttendedAt = &now
+
+	if req.ActualGuests >= 1 && req.ActualGuests <= 3 {
+		reservation.TotalGuests = req.ActualGuests
+	}
+
+	if err := database.DB.Save(&reservation).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": "error",
+			"error":  "Gagal menyimpan konfirmasi kehadiran, silakan coba lagi.",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
+		"message": fmt.Sprintf("Selamat datang %s! Kehadiran Anda berhasil dikonfirmasi. Selamat menikmati acara pernikahan Andri & Cica.", reservation.Name),
+		"data":    reservation,
+	})
+}
 func CreateReservation(c *gin.Context){
 	var req ReservationRequest
 	if err := c.ShouldBindJSON(&req); err != nil{

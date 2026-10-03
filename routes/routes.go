@@ -14,6 +14,8 @@ func RegisterRoutes(r *gin.Engine){
 
 		api.GET("/reservations", controller.GetReservations)
 		api.GET("/reservations/preview-email", controller.PreviewReservationEmail)
+		api.GET("/reservations/check-in/:code", controller.CheckInLookup)
+		api.POST("/reservations/check-in", controller.GuestCheckIn)
 		api.POST("/reservations", controller.CreateReservation)
 		api.GET("/reservations/:code", controller.FindReservationByCode)
 		api.POST("/login", controller.Login)
