@@ -22,8 +22,8 @@ func TestBuildWeddingReservationEmail(t *testing.T) {
 		"Turi Jaya Gang IV",
 		"https://andricica.mohaproject.tech?code=88219",
 		"Q.S. AR-RUM : 21",
-		"KODE RESERVASI RESMI",
-		"Terkonfirmasi Hadir",
+		"KODE CHECK-IN MASUK",
+		"Terdaftar Hadir",
 		"2 Orang",
 		"BUKA UNDANGAN DIGITAL",
 	}
@@ -49,7 +49,7 @@ func TestBuildWeddingReservationEmailIcloud(t *testing.T) {
 		"Andri &amp; Cica",
 		"21 November 2026",
 		"Turi Jaya Gang IV",
-		"KODE RESERVASI RESMI",
+		"KODE CHECK-IN MASUK",
 		"1 Orang",
 	}
 

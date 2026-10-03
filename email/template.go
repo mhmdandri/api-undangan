@@ -214,24 +214,55 @@ const ReservationTemplate = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transi
             <td class="mobile-padding" style="padding: 0 28px 22px 28px;">
               <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#1c202a" style="background-color: #1c202a; border: 1px solid #3d3522; border-radius: 10px;">
                 <tr>
-                  <td align="center" style="padding: 22px 16px; text-align: center;">
-                    <p style="margin: 0 0 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; color: #c5a059;">
-                      KODE RESERVASI RESMI
+                  <td align="center" style="padding: 22px 18px; text-align: center;">
+                    <p style="margin: 0 0 8px 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; color: #c5a059;">
+                      KODE CHECK-IN MASUK
                     </p>
-                    <div class="mobile-code" style="font-family: 'Courier New', Courier, monospace; font-size: 30px; font-weight: bold; letter-spacing: 6px; color: #f6d289; margin: 4px 0 10px 0;">
-                      {{.ReservationCode}}
-                    </div>
-                    <!-- Status Badge -->
-                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 10px auto;">
+                    
+                    <!-- PIN Voucher Box -->
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 8px auto;">
                       <tr>
-                        <td align="center" bgcolor="#13261a" style="background-color: #13261a; border: 1px solid #1e5e34; border-radius: 16px; padding: 4px 14px; font-family: Arial, Helvetica, sans-serif; font-size: 11px; font-weight: bold; color: #4ade80; text-transform: uppercase;">
-                          &#10003; {{.ReservationStatus}}
+                        <td align="center" bgcolor="#0b0c0e" style="background-color: #0b0c0e; border: 1px dashed #c5a059; border-radius: 8px; padding: 10px 26px;">
+                          <span class="mobile-code" style="font-family: 'Courier New', Courier, monospace; font-size: 28px; font-weight: bold; letter-spacing: 6px; color: #f6d289;">
+                            {{.ReservationCode}}
+                          </span>
                         </td>
                       </tr>
                     </table>
-                    <p style="margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #94a3b8;">
-                      Jumlah Tamu: <strong style="color: #ffffff;">{{.Guests}} Orang</strong>
+
+                    <p style="margin: 0 0 14px 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #94a3b8; line-height: 1.4;">
+                      Masukkan 5 digit kode di atas saat Anda melakukan scan barcode di lokasi acara
                     </p>
+
+                    <!-- Divider -->
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                      <tr>
+                        <td bgcolor="#282f3d" height="1" style="background-color: #282f3d; height: 1px; font-size: 0px; line-height: 0px;">&nbsp;</td>
+                      </tr>
+                    </table>
+
+                    <!-- Status & Quota Details -->
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 12px; font-family: Arial, Helvetica, sans-serif;">
+                      <tr>
+                        <td width="50%" align="center" style="padding: 4px 10px; border-right: 1px solid #282f3d;">
+                          <span style="color: #8e9ba8; display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px;">
+                            Status RSVP
+                          </span>
+                          <span style="color: #4ade80; font-weight: bold; font-size: 12px;">
+                            &#10003; Terdaftar Hadir
+                          </span>
+                        </td>
+                        <td width="50%" align="center" style="padding: 4px 10px;">
+                          <span style="color: #8e9ba8; display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px;">
+                            Jumlah Kuota
+                          </span>
+                          <span style="color: #ffffff; font-weight: bold; font-size: 12px;">
+                            {{.Guests}} Orang
+                          </span>
+                        </td>
+                      </tr>
+                    </table>
+
                   </td>
                 </tr>
               </table>
@@ -402,11 +433,12 @@ func BuildWeddingReservationPlainText(data WeddingEmailData) string {
 	sb.WriteString("Terima kasih atas konfirmasi kehadiran Anda untuk merayakan momen bahagia pernikahan kami.\n\n")
 
 	sb.WriteString("------------------------------------------------------------\n")
-	sb.WriteString("DETAIL RESERVASI ANDA\n")
+	sb.WriteString("TIKET CHECK-IN MASUK\n")
 	sb.WriteString("------------------------------------------------------------\n")
-	sb.WriteString(fmt.Sprintf("Kode Reservasi : %s\n", data.ReservationCode))
-	sb.WriteString(fmt.Sprintf("Status         : %s\n", data.ReservationStatus))
-	sb.WriteString(fmt.Sprintf("Jumlah Tamu    : %d Orang\n\n", data.Guests))
+	sb.WriteString(fmt.Sprintf("Kode Check-in   : %s\n", data.ReservationCode))
+	sb.WriteString("(Masukkan 5 digit kode ini saat scan barcode di lokasi acara)\n\n")
+	sb.WriteString(fmt.Sprintf("Status RSVP     : %s\n", data.ReservationStatus))
+	sb.WriteString(fmt.Sprintf("Jumlah Kuota    : %d Orang\n\n", data.Guests))
 
 	sb.WriteString("------------------------------------------------------------\n")
 	sb.WriteString("WAKTU & TEMPAT ACARA\n")
