@@ -172,6 +172,10 @@ func sendReservationEmailIcloud(r models.Reservation) {
 			"email": cfg.MailtrapFromEmail,
 			"name":  cfg.MailtrapFromName,
 		},
+		"reply_to": map[string]string{
+			"email": cfg.MailtrapFromEmail,
+			"name":  cfg.MailtrapFromName,
+		},
 		"to": []map[string]string{
 			{
 				"email": r.Email,
@@ -237,6 +241,10 @@ func sendReservationEmail(r models.Reservation) {
 
 	payload := map[string]interface{}{
 		"from": map[string]string{
+			"email": cfg.MailtrapFromEmail,
+			"name":  cfg.MailtrapFromName,
+		},
+		"reply_to": map[string]string{
 			"email": cfg.MailtrapFromEmail,
 			"name":  cfg.MailtrapFromName,
 		},
