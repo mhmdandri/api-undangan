@@ -69,42 +69,27 @@ func DefaultWeddingEmailData(name, recipientEmail, code string, guests int) Wedd
 	}
 }
 
-// Main Wedding Reservation HTML Template
-// Designed with modern dark luxury aesthetics matching andricica.mohaproject.tech
-// Adheres strictly to Gmail and general email client anti-spam requirements:
-// - Multipart compatibility with matching plain text
-// - Hidden preheader with zero-width non-breaking spacers
-// - Table-based responsive layout with inline CSS
-// - WCAG AA compliant high contrast colors
-// - Legitimate sender identification and unsubscribe/reasoning footnote
-const ReservationTemplate = `<!DOCTYPE html>
-<html lang="id" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+// ReservationTemplate is a rock-solid, cross-client email template.
+// Built specifically to prevent layout breakage across Gmail Web/App, Apple Mail, iCloud Mail, and Outlook:
+// 1. Fixed-width outer table (580px) with align="center" to prevent Gmail 100% viewport stretching.
+// 2. Pure table-based layout with explicit column widths (no awkward wrapping of labels and colons).
+// 3. Solid HEX color codes instead of rgba() which is stripped by Gmail and older mobile clients.
+// 4. Double-layer bgcolor attributes on all body, wrapper, and card cells to maintain dark aesthetics in all email readers.
+// 5. Anti-spam compliant hidden preheader with non-breaking zero-width spaces.
+// 6. Inline typography with standard web-safe fallbacks.
+const ReservationTemplate = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no, url=no">
-  <meta name="x-apple-disable-message-reformatting">
-  <meta name="color-scheme" content="dark light">
-  <meta name="supported-color-schemes" content="dark light">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no" />
   <title>Konfirmasi Reservasi - The Wedding of Andri &amp; Cica</title>
-  <!--[if mso]>
-  <noscript>
-    <xml>
-      <o:OfficeDocumentSettings>
-        <o:PixelsPerInch>96</o:PixelsPerInch>
-      </o:OfficeDocumentSettings>
-    </xml>
-  </noscript>
-  <![endif]-->
-  <style>
-    /* Client specific reset */
+  <style type="text/css">
     body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
     table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
     img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
-    table { border-collapse: collapse !important; }
-    body { margin: 0 !important; padding: 0 !important; width: 100% !important; height: 100% !important; background-color: #0b0c0e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-    /* iOS blue link fix */
+    body { margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #0b0c0e !important; }
     a[x-apple-data-detectors] {
       color: inherit !important;
       text-decoration: none !important;
@@ -113,54 +98,82 @@ const ReservationTemplate = `<!DOCTYPE html>
       font-weight: inherit !important;
       line-height: inherit !important;
     }
-    /* Mobile responsive */
-    @media only screen and (max-width: 600px) {
-      .email-container { width: 100% !important; max-width: 100% !important; margin: auto !important; }
-      .content-padding { padding-left: 20px !important; padding-right: 20px !important; }
-      .header-title { font-size: 28px !important; }
-      .code-display { font-size: 24px !important; letter-spacing: 4px !important; }
-      .mobile-stack { display: block !important; width: 100% !important; }
+    @media only screen and (max-width: 620px) {
+      .responsive-table {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      .mobile-padding {
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+      }
+      .mobile-code {
+        font-size: 24px !important;
+        letter-spacing: 4px !important;
+      }
+      .mobile-title {
+        font-size: 26px !important;
+      }
+      .detail-label {
+        width: 105px !important;
+      }
     }
   </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #0b0c0e; color: #e2e8f0; -webkit-font-smoothing: antialiased;">
+<body bgcolor="#0b0c0e" style="margin: 0; padding: 0; background-color: #0b0c0e; font-family: Arial, Helvetica, sans-serif; -webkit-font-smoothing: antialiased;">
 
-  <!-- PREHEADER (Hidden snippet for inbox preview without leaking into content) -->
+  <!-- PREHEADER (Hidden preview snippet without leaking into email body) -->
   <div style="display: none; max-height: 0px; overflow: hidden; font-size: 1px; line-height: 1px; max-width: 0px; opacity: 0; mso-hide: all;">
     Konfirmasi kehadiran pernikahan Andri &amp; Cica untuk {{.Name}}. Kode Reservasi Anda: {{.ReservationCode}}. Terima kasih atas konfirmasi kehadiran Anda.
     &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
   </div>
 
-  <!-- WRAPPER TABLE -->
-  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #0b0c0e; table-layout: fixed;">
+  <!-- OUTER FULL-WIDTH TABLE -->
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#0b0c0e" style="background-color: #0b0c0e; margin: 0; padding: 0;">
     <tr>
-      <td align="center" style="padding: 28px 12px 36px 12px;">
+      <td align="center" valign="top" bgcolor="#0b0c0e" style="padding: 24px 10px 36px 10px;">
 
-        <!-- MAIN CARD (Max width 580px) -->
-        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="email-container" style="max-width: 580px; background-color: #13161c; border-radius: 12px; border: 1px solid #242934; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);">
+        <!--[if (gte mso 9)|(IE)]>
+        <table align="center" border="0" cellspacing="0" cellpadding="0" width="580">
+        <tr>
+        <td align="center" valign="top" width="580">
+        <![endif]-->
+
+        <!-- MAIN CARD TABLE (Strictly 580px width) -->
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="580" align="center" class="responsive-table" bgcolor="#14171f" style="width: 580px; max-width: 580px; background-color: #14171f; border-radius: 12px; border: 1px solid #242934; overflow: hidden; margin: 0 auto;">
           
           <!-- TOP GOLD ACCENT BAR -->
           <tr>
-            <td style="background-color: #c5a059; height: 3px; font-size: 0px; line-height: 0px;">&nbsp;</td>
+            <td bgcolor="#c5a059" height="3" style="background-color: #c5a059; height: 3px; font-size: 0px; line-height: 0px;">&nbsp;</td>
           </tr>
 
           <!-- HEADER SECTION -->
           <tr>
-            <td align="center" class="content-padding" style="padding: 36px 32px 20px 32px; text-align: center;">
-              <p style="margin: 0 0 10px 0; font-size: 11px; letter-spacing: 4px; text-transform: uppercase; color: #c5a059; font-weight: 600;">
-                THE WEDDING OF
-              </p>
-              <h1 class="header-title" style="margin: 0 0 8px 0; font-family: 'Playfair Display', Georgia, 'Times New Roman', serif; font-size: 34px; font-weight: 400; color: #ffffff; letter-spacing: 1px; line-height: 1.2;">
-                {{.CoupleNames}}
-              </h1>
-              <p style="margin: 0; font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: #94a3b8; font-weight: 500;">
-                {{.EventDay}}, {{.EventDate}}
-              </p>
-
-              <!-- SUBTLE DECORATIVE LINE -->
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="80" style="margin: 20px auto 0 auto;">
+            <td align="center" class="mobile-padding" style="padding: 34px 28px 18px 28px; text-align: center;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
-                  <td style="border-bottom: 1px solid #363c4a; height: 1px; font-size: 0px; line-height: 0px;">&nbsp;</td>
+                  <td align="center" style="font-family: Arial, Helvetica, sans-serif; font-size: 11px; font-weight: bold; letter-spacing: 3px; text-transform: uppercase; color: #c5a059; padding-bottom: 8px;">
+                    THE WEDDING OF
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" class="mobile-title" style="font-family: Georgia, 'Times New Roman', serif; font-size: 32px; font-weight: normal; color: #ffffff; letter-spacing: 1px; line-height: 1.2; padding-bottom: 8px;">
+                    {{.CoupleNames}}
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="font-family: Arial, Helvetica, sans-serif; font-size: 12px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; color: #94a3b8; padding-bottom: 18px;">
+                    {{.EventDay}}, {{.EventDate}}
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="70" align="center">
+                      <tr>
+                        <td bgcolor="#363c4a" height="1" style="background-color: #363c4a; height: 1px; font-size: 0px; line-height: 0px;">&nbsp;</td>
+                      </tr>
+                    </table>
+                  </td>
                 </tr>
               </table>
             </td>
@@ -168,14 +181,14 @@ const ReservationTemplate = `<!DOCTYPE html>
 
           <!-- HOLY VERSE / QUOTE -->
           <tr>
-            <td class="content-padding" style="padding: 0 32px 24px 32px; text-align: center;">
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #171b23; border: 1px solid #242934; border-radius: 8px;">
+            <td class="mobile-padding" style="padding: 0 28px 22px 28px;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#191d26" style="background-color: #191d26; border: 1px solid #242934; border-radius: 8px;">
                 <tr>
-                  <td style="padding: 16px 20px; text-align: center;">
-                    <p style="margin: 0 0 6px 0; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #c5a059; font-weight: 600;">
+                  <td align="center" style="padding: 16px 20px; text-align: center;">
+                    <p style="margin: 0 0 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; color: #c5a059;">
                       Q.S. AR-RUM : 21
                     </p>
-                    <p style="margin: 0; font-size: 12px; line-height: 1.7; color: #a0aec0; font-style: italic;">
+                    <p style="margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: 12px; line-height: 1.7; color: #a0aec0; font-style: italic;">
                       &ldquo;Dan di antara tanda-tanda (kebesaran)-Nya ialah Dia menciptakan pasangan-pasangan untukmu dari jenismu sendiri, agar kamu cenderung dan merasa tenteram kepadanya, dan Dia menjadikan di antaramu rasa kasih dan sayang.&rdquo;
                     </p>
                   </td>
@@ -186,37 +199,38 @@ const ReservationTemplate = `<!DOCTYPE html>
 
           <!-- GREETING & CONFIRMATION NOTE -->
           <tr>
-            <td class="content-padding" style="padding: 0 32px 24px 32px; text-align: left; color: #e2e8f0; font-size: 14px; line-height: 1.65;">
-              <p style="margin: 0 0 12px 0;">
+            <td class="mobile-padding" style="padding: 0 28px 22px 28px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.6; color: #e2e8f0; text-align: left;">
+              <p style="margin: 0 0 10px 0; font-size: 14px; color: #e2e8f0;">
                 Kepada Yth. Bapak/Ibu/Saudara/i <strong style="color: #ffffff;">{{.Name}}</strong>,
               </p>
-              <p style="margin: 0; color: #cbd5e1;">
-                Terima kasih atas konfirmasi kehadiran Anda. Merupakan suatu kehormatan dan kebahagiaan bagi kami sekeluarga apabila Anda berkenan hadir untuk memberikan doa restu secara langsung pada hari bahagia kami.
+              <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #cbd5e1;">
+                Terima kasih atas konfirmasi kehadiran Anda. Merupakan suatu kehormatan dan kebahagiaan bagi kami sekeluarga apabila Anda berkenan hadir untuk memberikan doa restu secara langsung pada hari pernikahan kami.
               </p>
             </td>
           </tr>
 
           <!-- RESERVATION PASS / CODE BOX -->
           <tr>
-            <td class="content-padding" style="padding: 0 32px 24px 32px;">
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #191e28; border: 1px solid #383120; border-radius: 10px; text-align: center;">
+            <td class="mobile-padding" style="padding: 0 28px 22px 28px;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#1c202a" style="background-color: #1c202a; border: 1px solid #3d3522; border-radius: 10px;">
                 <tr>
-                  <td style="padding: 22px 20px;">
-                    <p style="margin: 0 0 8px 0; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: #c5a059; font-weight: 600;">
+                  <td align="center" style="padding: 22px 16px; text-align: center;">
+                    <p style="margin: 0 0 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; color: #c5a059;">
                       KODE RESERVASI RESMI
                     </p>
-                    <div class="code-display" style="font-family: 'Courier New', Courier, monospace; font-size: 30px; font-weight: bold; letter-spacing: 6px; color: #f6d289; margin: 4px 0 12px 0;">
+                    <div class="mobile-code" style="font-family: 'Courier New', Courier, monospace; font-size: 30px; font-weight: bold; letter-spacing: 6px; color: #f6d289; margin: 4px 0 10px 0;">
                       {{.ReservationCode}}
                     </div>
+                    <!-- Status Badge -->
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 10px auto;">
                       <tr>
-                        <td style="background-color: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 9999px; padding: 4px 14px; font-size: 11px; font-weight: 600; color: #4ade80; text-transform: uppercase; letter-spacing: 1px;">
+                        <td align="center" bgcolor="#13261a" style="background-color: #13261a; border: 1px solid #1e5e34; border-radius: 16px; padding: 4px 14px; font-family: Arial, Helvetica, sans-serif; font-size: 11px; font-weight: bold; color: #4ade80; text-transform: uppercase;">
                           &#10003; {{.ReservationStatus}}
                         </td>
                       </tr>
                     </table>
-                    <p style="margin: 6px 0 0 0; font-size: 12px; color: #94a3b8;">
-                      Jumlah Reservasi: <strong style="color: #ffffff;">{{.Guests}} Orang</strong>
+                    <p style="margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #94a3b8;">
+                      Jumlah Tamu: <strong style="color: #ffffff;">{{.Guests}} Orang</strong>
                     </p>
                   </td>
                 </tr>
@@ -224,61 +238,83 @@ const ReservationTemplate = `<!DOCTYPE html>
             </td>
           </tr>
 
-          <!-- EVENT DETAILS SECTION -->
+          <!-- EVENT DETAILS SECTION (BULLETPROOF TABLE WITH FIXED COLUMNS) -->
           <tr>
-            <td class="content-padding" style="padding: 0 32px 28px 32px;">
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #171b23; border: 1px solid #242934; border-radius: 10px; font-size: 13px;">
-                <!-- Header Title -->
+            <td class="mobile-padding" style="padding: 0 28px 24px 28px;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#191d26" style="background-color: #191d26; border: 1px solid #242934; border-radius: 8px;">
+                <!-- Table Header -->
                 <tr>
-                  <td colspan="2" style="padding: 16px 20px 12px 20px; border-bottom: 1px solid #242934;">
-                    <p style="margin: 0; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: #c5a059; font-weight: 600;">
-                      WAKTU &amp; TEMPAT ACARA
-                    </p>
+                  <td colspan="3" bgcolor="#1c202a" style="background-color: #1c202a; padding: 12px 18px; border-bottom: 1px solid #242934; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+                    <span style="font-family: Arial, Helvetica, sans-serif; font-size: 11px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; color: #c5a059;">
+                      DETAIL ACARA PERNIKAHAN
+                    </span>
                   </td>
                 </tr>
-                <!-- Tanggal -->
+                <!-- Rows container -->
                 <tr>
-                  <td width="35%" valign="top" style="padding: 12px 20px 8px 20px; color: #8e9ba8;">Hari &amp; Tanggal</td>
-                  <td width="65%" valign="top" style="padding: 12px 20px 8px 0; color: #ffffff; font-weight: 500;">
-                    {{.EventDay}}, {{.EventDate}}
-                  </td>
-                </tr>
-                <!-- Akad Nikah -->
-                <tr>
-                  <td width="35%" valign="top" style="padding: 8px 20px; color: #8e9ba8;">Akad Nikah</td>
-                  <td width="65%" valign="top" style="padding: 8px 20px 8px 0; color: #ffffff;">
-                    {{.AkadTime}}
-                  </td>
-                </tr>
-                <!-- Resepsi -->
-                <tr>
-                  <td width="35%" valign="top" style="padding: 8px 20px; color: #8e9ba8;">Resepsi Pernikahan</td>
-                  <td width="65%" valign="top" style="padding: 8px 20px 8px 0; color: #ffffff;">
-                    {{.ResepsiTime}}
-                  </td>
-                </tr>
-                <!-- Lokasi -->
-                <tr>
-                  <td width="35%" valign="top" style="padding: 8px 20px; color: #8e9ba8;">Lokasi Acara</td>
-                  <td width="65%" valign="top" style="padding: 8px 20px 8px 0; color: #ffffff; font-weight: 500;">
-                    {{.VenueName}}
-                  </td>
-                </tr>
-                <!-- Alamat -->
-                <tr>
-                  <td width="35%" valign="top" style="padding: 8px 20px 16px 20px; color: #8e9ba8;">Alamat</td>
-                  <td width="65%" valign="top" style="padding: 8px 20px 16px 0; color: #cbd5e1; line-height: 1.5;">
-                    {{.VenueAddress}}
+                  <td colspan="3" style="padding: 12px 18px 16px 18px;">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                      <!-- Hari & Tanggal -->
+                      <tr>
+                        <td class="detail-label" width="125" valign="top" style="padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #94a3b8;">
+                          Hari, Tanggal
+                        </td>
+                        <td width="15" valign="top" style="padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #94a3b8;">:</td>
+                        <td valign="top" style="padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; font-weight: bold; color: #ffffff;">
+                          {{.EventDay}}, {{.EventDate}}
+                        </td>
+                      </tr>
+                      <!-- Akad Nikah -->
+                      <tr>
+                        <td class="detail-label" width="125" valign="top" style="padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #94a3b8;">
+                          Akad Nikah
+                        </td>
+                        <td width="15" valign="top" style="padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #94a3b8;">:</td>
+                        <td valign="top" style="padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #ffffff;">
+                          {{.AkadTime}}
+                        </td>
+                      </tr>
+                      <!-- Resepsi -->
+                      <tr>
+                        <td class="detail-label" width="125" valign="top" style="padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #94a3b8;">
+                          Resepsi
+                        </td>
+                        <td width="15" valign="top" style="padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #94a3b8;">:</td>
+                        <td valign="top" style="padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #ffffff;">
+                          {{.ResepsiTime}}
+                        </td>
+                      </tr>
+                      <!-- Lokasi Acara -->
+                      <tr>
+                        <td class="detail-label" width="125" valign="top" style="padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #94a3b8;">
+                          Lokasi Acara
+                        </td>
+                        <td width="15" valign="top" style="padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #94a3b8;">:</td>
+                        <td valign="top" style="padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; font-weight: bold; color: #ffffff;">
+                          {{.VenueName}}
+                        </td>
+                      </tr>
+                      <!-- Alamat Lengkap -->
+                      <tr>
+                        <td class="detail-label" width="125" valign="top" style="padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #94a3b8;">
+                          Alamat Lengkap
+                        </td>
+                        <td width="15" valign="top" style="padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #94a3b8;">:</td>
+                        <td valign="top" style="padding: 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; line-height: 1.5; color: #cbd5e1;">
+                          {{.VenueAddress}}
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- NOTICE NOTE -->
+          <!-- INSTRUCTION NOTE -->
           <tr>
-            <td class="content-padding" style="padding: 0 32px 24px 32px; text-align: center;">
-              <p style="margin: 0; font-size: 12px; color: #8e9ba8; line-height: 1.6;">
+            <td class="mobile-padding" align="center" style="padding: 0 28px 22px 28px; text-align: center;">
+              <p style="margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #8e9ba8; line-height: 1.5;">
                 Harap simpan email ini atau catat kode reservasi Anda. Tunjukkan kode ini kepada penerima tamu saat tiba di lokasi acara.
               </p>
             </td>
@@ -286,17 +322,17 @@ const ReservationTemplate = `<!DOCTYPE html>
 
           <!-- CTA BUTTON -->
           <tr>
-            <td align="center" class="content-padding" style="padding: 0 32px 36px 32px;">
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+            <td class="mobile-padding" align="center" style="padding: 0 28px 32px 28px; text-align: center;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto;">
                 <tr>
-                  <td align="center" style="border-radius: 9999px; background-color: #c5a059;">
-                    <a href="{{.ReservationDetailURL}}" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 14px 32px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12px; font-weight: 600; color: #0b0c0e; text-decoration: none; text-transform: uppercase; letter-spacing: 2px; border-radius: 9999px;">
+                  <td align="center" bgcolor="#c5a059" style="border-radius: 24px; background-color: #c5a059;">
+                    <a href="{{.ReservationDetailURL}}" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 13px 30px; font-family: Arial, Helvetica, sans-serif; font-size: 12px; font-weight: bold; color: #0b0c0e; text-decoration: none; text-transform: uppercase; letter-spacing: 2px; border-radius: 24px;">
                       BUKA UNDANGAN DIGITAL
                     </a>
                   </td>
                 </tr>
               </table>
-              <p style="margin: 14px 0 0 0; font-size: 11px; color: #64748b;">
+              <p style="margin: 14px 0 0 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #64748b;">
                 Atau lihat petunjuk arah di 
                 <a href="{{.MapsURL}}" target="_blank" rel="noopener noreferrer" style="color: #c5a059; text-decoration: underline;">
                   Google Maps
@@ -307,13 +343,13 @@ const ReservationTemplate = `<!DOCTYPE html>
 
           <!-- FOOTER -->
           <tr>
-            <td class="content-padding" style="background-color: #0e1015; border-top: 1px solid #1f232d; padding: 24px 32px; text-align: center; color: #64748b; font-size: 11px; line-height: 1.6;">
-              <p style="margin: 0 0 6px 0; color: #8e9ba8; font-weight: 500;">
+            <td class="mobile-padding" bgcolor="#0e1015" style="background-color: #0e1015; border-top: 1px solid #1f232d; padding: 22px 28px; text-align: center; font-family: Arial, Helvetica, sans-serif; color: #64748b; font-size: 11px; line-height: 1.6;">
+              <p style="margin: 0 0 6px 0; color: #8e9ba8; font-weight: bold;">
                 The Wedding of {{.BrideName}} &amp; {{.GroomName}}
               </p>
-              <p style="margin: 0 0 10px 0;">
-                Anda menerima email ini karena melakukan konfirmasi kehadiran di website resmi 
-                <a href="{{.ReservationDetailURL}}" target="_blank" style="color: #8e9ba8; text-decoration: none;">andricica.mohaproject.tech</a>.
+              <p style="margin: 0 0 8px 0; color: #64748b;">
+                Email konfirmasi otomatis dari sistem RSVP website resmi 
+                <a href="{{.ReservationDetailURL}}" target="_blank" style="color: #8e9ba8; text-decoration: underline;">andricica.mohaproject.tech</a>.
               </p>
               <p style="margin: 0; font-size: 10px; color: #475569;">
                 &copy; {{.Year}} mohaproject.tech &middot; All rights reserved.
@@ -322,7 +358,13 @@ const ReservationTemplate = `<!DOCTYPE html>
           </tr>
 
         </table>
-        <!-- END MAIN CARD -->
+        <!-- END MAIN CARD TABLE -->
+
+        <!--[if (gte mso 9)|(IE)]>
+        </td>
+        </tr>
+        </table>
+        <![endif]-->
 
       </td>
     </tr>
