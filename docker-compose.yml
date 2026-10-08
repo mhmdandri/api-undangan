@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: api-undangan-app
+    container_name: api-undangan
     restart: unless-stopped
     ports:
       - "${APP_PORT_HOST:-8888}:8888"
@@ -30,7 +30,11 @@ services:
     ports:
       - "${DB_PORT_EXPOSE:-127.0.0.1:5432}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-undangan_db}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-undangan_db}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -38,3 +42,9 @@ services:
 volumes:
   pgdata:
     driver: local
+
+networks:
+  default:
+    name: undangan-andri_default
+    driver: bridge
+    external: true
