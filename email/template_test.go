@@ -20,7 +20,7 @@ func TestBuildWeddingReservationEmail(t *testing.T) {
 		"21 November 2026",
 		"09.00 WIB",
 		"Turi Jaya Gang IV",
-		"https://andricica.mohaproject.tech?code=88219",
+		"https://weddingofandricica.me?code=88219",
 		"Q.S. AR-RUM : 21",
 		"KODE CHECK-IN MASUK",
 		"Terdaftar Hadir",
@@ -71,8 +71,8 @@ func TestBuildWeddingReservationPlainText(t *testing.T) {
 		"88219",
 		"21 November 2026",
 		"Turi Jaya Gang IV",
-		"https://andricica.mohaproject.tech?code=88219",
-		"mohaproject.tech",
+		"https://weddingofandricica.me?code=88219",
+		"weddingofandricica.me",
 	}
 
 	for _, sub := range requiredSubstrings {

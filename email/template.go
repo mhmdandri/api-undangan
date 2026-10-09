@@ -42,9 +42,9 @@ func DefaultWeddingEmailData(name, recipientEmail, code string, guests int) Wedd
 		trimmedName = "Tamu Undangan"
 	}
 
-	detailURL := "https://andricica.mohaproject.tech"
+	detailURL := "https://weddingofandricica.me"
 	if code != "" {
-		detailURL = fmt.Sprintf("https://andricica.mohaproject.tech?code=%s", code)
+		detailURL = fmt.Sprintf("https://weddingofandricica.me?code=%s", code)
 	}
 
 	return WeddingEmailData{
@@ -380,10 +380,10 @@ const ReservationTemplate = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transi
               </p>
               <p style="margin: 0 0 8px 0; color: #64748b;">
                 Email konfirmasi otomatis dari sistem RSVP website resmi 
-                <a href="{{.ReservationDetailURL}}" target="_blank" style="color: #8e9ba8; text-decoration: underline;">andricica.mohaproject.tech</a>.
+                <a href="{{.ReservationDetailURL}}" target="_blank" style="color: #8e9ba8; text-decoration: underline;">weddingofandricica.me</a>.
               </p>
               <p style="margin: 0; font-size: 10px; color: #475569;">
-                &copy; {{.Year}} mohaproject.tech &middot; All rights reserved.
+                &copy; {{.Year}} weddingofandricica.me &middot; All rights reserved.
               </p>
             </td>
           </tr>
@@ -457,9 +457,9 @@ func BuildWeddingReservationPlainText(data WeddingEmailData) string {
 
 	sb.WriteString("Mohon simpan kode reservasi ini dan tunjukkan kepada penerima tamu saat tiba di lokasi.\n\n")
 	sb.WriteString(fmt.Sprintf("Salam hangat,\n%s & %s\n", data.GroomName, data.BrideName))
-	sb.WriteString("mohaproject.tech\n\n")
+	sb.WriteString("weddingofandricica.me\n\n")
 	sb.WriteString("------------------------------------------------------------\n")
-	sb.WriteString(fmt.Sprintf("Anda menerima email ini karena telah melakukan RSVP di andricica.mohaproject.tech.\n© %d mohaproject.tech\n", data.Year))
+	sb.WriteString(fmt.Sprintf("Anda menerima email ini karena telah melakukan RSVP di weddingofandricica.me.\n© %d weddingofandricica.me\n", data.Year))
 	sb.WriteString("============================================================\n")
 
 	return sb.String()
