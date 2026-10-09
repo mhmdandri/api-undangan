@@ -295,7 +295,6 @@ func CreateReservation(c *gin.Context) {
 		var existing models.Reservation
 		if err := database.DB.Where("code = ?", reqCode).First(&existing).Error; err == nil {
 			existing.Name = req.Name
-			existing.IsPresent = *req.IsPresent
 			if req.Email != "" {
 				existing.Email = strings.TrimSpace(req.Email)
 			}
@@ -318,7 +317,7 @@ func CreateReservation(c *gin.Context) {
 				return
 			}
 
-			if existing.IsPresent && strings.TrimSpace(existing.Email) != "" {
+			if *req.IsPresent && strings.TrimSpace(existing.Email) != "" {
 				go sendReservationEmailByProvider(existing)
 			}
 
@@ -353,7 +352,7 @@ func CreateReservation(c *gin.Context) {
 
 		reservation = models.Reservation{
 			Name:        req.Name,
-			IsPresent:   *req.IsPresent,
+			IsPresent:   false,
 			Email:       strings.TrimSpace(req.Email),
 			Phone:       strings.TrimSpace(req.Phone),
 			Code:        code,
@@ -373,7 +372,7 @@ func CreateReservation(c *gin.Context) {
 			return
 		}
 
-		if reservation.IsPresent && strings.TrimSpace(reservation.Email) != "" {
+		if *req.IsPresent && strings.TrimSpace(reservation.Email) != "" {
 			go sendReservationEmailByProvider(reservation)
 		}
 
