@@ -216,29 +216,42 @@ const ReservationTemplate = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transi
             </td>
           </tr>
 
-          <!-- RESERVATION PASS / CODE BOX -->
+          <!-- RESERVATION PASS / QR CODE & CHECK-IN BOX -->
           <tr>
-            <td class="mobile-padding" style="padding: 0 28px 22px 28px;">
+            <td class="mobile-padding" style="padding: 0 28px 24px 28px;">
               <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#1c202a" style="background-color: #1c202a; border: 1px solid #3d3522; border-radius: 10px;">
                 <tr>
-                  <td align="center" style="padding: 22px 18px; text-align: center;">
-                    <p style="margin: 0 0 8px 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; color: #c5a059;">
+                  <td align="center" style="padding: 24px 20px 20px 20px; text-align: center;">
+                    <p style="margin: 0 0 6px 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; color: #c5a059;">
                       KODE CHECK-IN MASUK
                     </p>
-                    
-                    <!-- PIN Voucher Box -->
-                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 8px auto;">
+                    <p style="margin: 0 0 16px 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #94a3b8; line-height: 1.4;">
+                      Tunjukkan QR code ini kepada penerima tamu saat tiba di lokasi acara
+                    </p>
+
+                    <!-- QR Code Container -->
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 16px auto;">
                       <tr>
-                        <td align="center" bgcolor="#0b0c0e" style="background-color: #0b0c0e; border: 1px dashed #c5a059; border-radius: 8px; padding: 10px 26px;">
-                          <span class="mobile-code" style="font-family: 'Courier New', Courier, monospace; font-size: 28px; font-weight: bold; letter-spacing: 6px; color: #f6d289;">
-                            {{.ReservationCode}}
-                          </span>
+                        <td align="center" bgcolor="#ffffff" style="background-color: #ffffff; padding: 12px; border-radius: 10px; border: 2px solid #c5a059; line-height: 0;">
+                          <img src="{{.QRCodeURL}}" width="180" height="180" alt="QR Code Check-in {{.Name}}" style="display: block; width: 180px; height: 180px; margin: 0 auto; border: 0;" />
                         </td>
                       </tr>
                     </table>
 
-                    <p style="margin: 0 0 14px 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #94a3b8; line-height: 1.4;">
-                      Masukkan 5 digit kode di atas saat Anda melakukan scan barcode di lokasi acara
+                    <!-- 5-Digit Reservation Code Box -->
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 8px auto;">
+                      <tr>
+                        <td align="center" bgcolor="#0b0c0e" style="background-color: #0b0c0e; border: 1px dashed #c5a059; border-radius: 8px; padding: 8px 24px;">
+                          <span style="font-family: Arial, Helvetica, sans-serif; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px; color: #a0aec0; display: block; margin-bottom: 2px;">
+                            KODE RESERVASI
+                          </span>
+                          <span class="mobile-code" style="font-family: 'Courier New', Courier, monospace; font-size: 26px; font-weight: bold; letter-spacing: 6px; color: #f6d289; display: inline-block;">{{.ReservationCode}}</span>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <p style="margin: 0 0 16px 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #94a3b8; line-height: 1.4;">
+                      Atau gunakan 5 digit kode di atas jika scanner barcode terkendala
                     </p>
 
                     <!-- Divider -->
@@ -249,7 +262,7 @@ const ReservationTemplate = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transi
                     </table>
 
                     <!-- Status & Quota Details -->
-                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 12px; font-family: Arial, Helvetica, sans-serif;">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 14px; font-family: Arial, Helvetica, sans-serif;">
                       <tr>
                         <td width="50%" align="center" style="padding: 4px 10px; border-right: 1px solid #282f3d;">
                           <span style="color: #8e9ba8; display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px;">
@@ -353,7 +366,7 @@ const ReservationTemplate = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transi
           <tr>
             <td class="mobile-padding" align="center" style="padding: 0 28px 22px 28px; text-align: center;">
               <p style="margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #8e9ba8; line-height: 1.5;">
-                Harap simpan email ini atau catat kode reservasi Anda. Tunjukkan kode ini kepada penerima tamu saat tiba di lokasi acara.
+                Harap simpan email ini atau screenshot QR Code check-in Anda untuk ditunjukkan kepada penerima tamu saat tiba di lokasi acara.
               </p>
             </td>
           </tr>
@@ -375,19 +388,6 @@ const ReservationTemplate = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transi
                 <a href="{{.MapsURL}}" target="_blank" rel="noopener noreferrer" style="color: #c5a059; text-decoration: underline;">
                   Google Maps
                 </a>
-              </p>
-            </td>
-          </tr>
-
-          <!-- RESERVATION QR CODE -->
-          <tr>
-            <td class="mobile-padding" align="center" style="padding: 0 28px 28px 28px; text-align: center;">
-              <p style="margin: 0 0 12px 0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #8e9ba8; line-height: 1.5;">
-                Scan QR code ini untuk membuka undangan digital Anda
-              </p>
-              <img src="{{.QRCodeURL}}" width="220" height="220" alt="QR Code undangan digital untuk {{.Name}}" style="display: block; width: 220px; height: 220px; margin: 0 auto; border: 8px solid #ffffff; background-color: #ffffff;" />
-              <p style="margin: 12px 0 0 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #64748b; line-height: 1.5;">
-                Kode reservasi: <strong style="color: #c5a059;">{{.ReservationCode}}</strong>
               </p>
             </td>
           </tr>

@@ -19,6 +19,7 @@ func RegisterRoutes(r *gin.Engine) {
 		api.POST("/reservations/check-in", controller.GuestCheckIn)
 		api.POST("/reservations/check-in/:code", controller.GuestCheckInByCode)
 		api.POST("/reservations", controller.CreateReservation)
+		api.POST("/reservations/batch", controller.BatchCreateReservations)
 		api.GET("/reservations/:code", controller.FindReservationByCode)
 		api.POST("/login", controller.Login)
 

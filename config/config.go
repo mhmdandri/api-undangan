@@ -10,6 +10,7 @@ import (
 )
 type Config struct {
 	AppPort		string
+	ClientOrigin string
 	DatabaseURL string
 	DBHost		string
 	DBPort		string
@@ -46,6 +47,12 @@ func LoadConfig(){
 	
 	Cfg = &Config{
 		AppPort:     port,
+		ClientOrigin: func() string {
+			if v := os.Getenv("CLIENT_ORIGIN"); v != "" {
+				return v
+			}
+			return "https://weddingofandricica.me"
+		}(),
 		DatabaseURL: os.Getenv("DATABASE_URL"),
 		DBHost:      os.Getenv("DB_HOST"),
 		DBPort:      os.Getenv("DB_PORT"),

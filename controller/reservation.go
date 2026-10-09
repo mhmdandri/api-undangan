@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -21,10 +22,29 @@ import (
 const maxReservationsCodeAttempts = 5
 
 type ReservationRequest struct {
+	Code        string `json:"code"`
 	Name        string `json:"name" binding:"required"`
 	IsPresent   *bool  `json:"is_present" binding:"required"`
-	Email       string `json:"email" binding:"required,email"`
-	TotalGuests int    `json:"total_guests" binding:"omitempty,min=1,max=3"`
+	Email       string `json:"email" binding:"omitempty,email"`
+	Phone       string `json:"phone"`
+	TotalGuests int    `json:"total_guests" binding:"omitempty,min=1,max=10"`
+}
+
+type BatchGuestItem struct {
+	Name        string `json:"name" binding:"required"`
+	Phone       string `json:"phone"`
+	Email       string `json:"email"`
+	QuotaGuests int    `json:"quota_guests" binding:"omitempty,min=1,max=10"`
+}
+
+type BatchReservationRequest struct {
+	Guests []BatchGuestItem `json:"guests" binding:"required"`
+}
+
+type BatchReservationItemResponse struct {
+	models.Reservation
+	InviteURL string `json:"invite_url"`
+	QRCodeURL string `json:"qr_code_url"`
 }
 type ConfirmReservationRequest struct {
 	Code string `json:"code" binding:"required"`
@@ -262,10 +282,55 @@ func CreateReservation(c *gin.Context) {
 	var req ReservationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "nama, kehadiran, email wajib di isi",
+			"error":  "Nama dan status kehadiran wajib diisi",
+			"detail": err.Error(),
 		})
 		return
 	}
+
+	reqCode := strings.TrimSpace(req.Code)
+
+	// JALUR 1: Jika request membawa kode reservasi (tamu pre-registered atau update RSVP)
+	if reqCode != "" {
+		var existing models.Reservation
+		if err := database.DB.Where("code = ?", reqCode).First(&existing).Error; err == nil {
+			existing.Name = req.Name
+			existing.IsPresent = *req.IsPresent
+			if req.Email != "" {
+				existing.Email = strings.TrimSpace(req.Email)
+			}
+			if req.Phone != "" {
+				existing.Phone = strings.TrimSpace(req.Phone)
+			}
+			if req.TotalGuests > 0 {
+				existing.TotalGuests = req.TotalGuests
+			}
+			if *req.IsPresent {
+				existing.Status = "konfirmasi_hadir"
+			} else {
+				existing.Status = "tidak_datang"
+			}
+
+			if err := database.DB.Save(&existing).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Gagal memperbarui konfirmasi reservasi",
+				})
+				return
+			}
+
+			if existing.IsPresent && strings.TrimSpace(existing.Email) != "" {
+				go sendReservationEmailByProvider(existing)
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"data":    existing,
+				"message": "Konfirmasi kehadiran berhasil disimpan",
+			})
+			return
+		}
+	}
+
+	// JALUR 2: Tamu Mandiri (Self-registered tanpa kode)
 	var reservation models.Reservation
 	for attempt := 0; attempt < maxReservationsCodeAttempts; attempt++ {
 		code, err := generateUniqueReservationCode()
@@ -275,13 +340,29 @@ func CreateReservation(c *gin.Context) {
 			})
 			return
 		}
+
+		status := "tidak_datang"
+		if *req.IsPresent {
+			status = "konfirmasi_hadir"
+		}
+
+		totalGuests := req.TotalGuests
+		if totalGuests <= 0 {
+			totalGuests = 1
+		}
+
 		reservation = models.Reservation{
 			Name:        req.Name,
 			IsPresent:   *req.IsPresent,
-			Email:       req.Email,
+			Email:       strings.TrimSpace(req.Email),
+			Phone:       strings.TrimSpace(req.Phone),
 			Code:        code,
-			TotalGuests: req.TotalGuests,
+			QuotaGuests: totalGuests,
+			TotalGuests: totalGuests,
+			Status:      status,
+			Source:      "self_registered",
 		}
+
 		if err := database.DB.Create(&reservation).Error; err != nil {
 			if errors.Is(err, gorm.ErrDuplicatedKey) {
 				continue
@@ -291,9 +372,11 @@ func CreateReservation(c *gin.Context) {
 			})
 			return
 		}
-		if reservation.IsPresent {
+
+		if reservation.IsPresent && strings.TrimSpace(reservation.Email) != "" {
 			go sendReservationEmailByProvider(reservation)
 		}
+
 		c.JSON(http.StatusCreated, gin.H{
 			"data":    reservation,
 			"message": "Reservation created successfully",
@@ -305,6 +388,9 @@ func CreateReservation(c *gin.Context) {
 	})
 }
 func sendReservationEmailByProvider(r models.Reservation) {
+	if strings.TrimSpace(r.Email) == "" {
+		return
+	}
 	emailLower := strings.ToLower(strings.TrimSpace(r.Email))
 	if strings.HasSuffix(emailLower, "@icloud.com") || strings.HasSuffix(emailLower, "@me.com") || strings.HasSuffix(emailLower, "@mac.com") {
 		sendReservationEmailIcloud(r)
@@ -489,15 +575,116 @@ func PreviewReservationEmail(c *gin.Context) {
 }
 
 func generateUniqueReservationCode() (string, error) {
+	return generateUniqueReservationCodeWithDB(database.DB)
+}
+
+func generateUniqueReservationCodeWithDB(db *gorm.DB) (string, error) {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-	for {
+	for attempt := 0; attempt < 50; attempt++ {
 		code := fmt.Sprintf("%05d", rnd.Intn(100000))
 		var count int64
-		if err := database.DB.Model(&models.Reservation{}).Where("code = ?", code).Count(&count).Error; err != nil {
+		if err := db.Model(&models.Reservation{}).Where("code = ?", code).Count(&count).Error; err != nil {
 			return "", err
 		}
 		if count == 0 {
 			return code, nil
 		}
 	}
+	return "", fmt.Errorf("exhausted unique reservation code generation attempts")
+}
+
+
+// BatchCreateReservations handles bulk pre-registration for VIP / shared guests
+func BatchCreateReservations(c *gin.Context) {
+	var req BatchReservationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":  "Format data tamu tidak valid. Pastikan array 'guests' dengan nama terisi.",
+			"detail": err.Error(),
+		})
+		return
+	}
+
+	if len(req.Guests) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Daftar tamu tidak boleh kosong",
+		})
+		return
+	}
+
+	siteURL := "https://weddingofandricica.me"
+	if config.Cfg != nil && config.Cfg.ClientOrigin != "" {
+		siteURL = strings.TrimRight(config.Cfg.ClientOrigin, "/")
+	}
+
+	var createdList []BatchReservationItemResponse
+	tx := database.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	for _, item := range req.Guests {
+		name := strings.TrimSpace(item.Name)
+		if name == "" {
+			continue
+		}
+
+		code, err := generateUniqueReservationCodeWithDB(tx)
+		if err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Gagal generate kode reservasi unik",
+			})
+			return
+		}
+
+		quota := item.QuotaGuests
+		if quota <= 0 {
+			quota = 2
+		}
+
+		guest := models.Reservation{
+			Name:        name,
+			Phone:       strings.TrimSpace(item.Phone),
+			Email:       strings.TrimSpace(item.Email),
+			Code:        code,
+			QuotaGuests: quota,
+			TotalGuests: quota,
+			IsPresent:   false,
+			Status:      "belum_konfirmasi",
+			Source:      "pre_registered",
+		}
+
+		if err := tx.Create(&guest).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":  "Gagal menyimpan data tamu",
+				"detail": err.Error(),
+			})
+			return
+		}
+
+		inviteURL := fmt.Sprintf("%s?code=%s", siteURL, code)
+		qrCodeURL := fmt.Sprintf("https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=10&data=%s", url.QueryEscape(inviteURL))
+		createdList = append(createdList, BatchReservationItemResponse{
+			Reservation: guest,
+			InviteURL:   inviteURL,
+			QRCodeURL:   qrCodeURL,
+		})
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Gagal commit database",
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": fmt.Sprintf("Berhasil membuat %d undangan pre-registered", len(createdList)),
+		"total":   len(createdList),
+		"data":    createdList,
+	})
 }

@@ -35,6 +35,12 @@ func TestBuildWeddingReservationEmail(t *testing.T) {
 			t.Errorf("Expected HTML email to contain %q, but it was missing", sub)
 		}
 	}
+
+	qrIdx := strings.Index(html, "api.qrserver.com/v1/create-qr-code")
+	checkinCodeIdx := strings.Index(html, ">88219</span>")
+	if qrIdx == -1 || checkinCodeIdx == -1 || qrIdx >= checkinCodeIdx {
+		t.Errorf("Expected QR code to appear before reservation code in checkin box, but qrIdx=%d, checkinCodeIdx=%d", qrIdx, checkinCodeIdx)
+	}
 }
 
 func TestBuildWeddingReservationEmailIcloud(t *testing.T) {
