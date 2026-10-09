@@ -21,6 +21,8 @@ func TestBuildWeddingReservationEmail(t *testing.T) {
 		"09.00 WIB",
 		"Turi Jaya Gang IV",
 		"https://weddingofandricica.me?code=88219",
+		"api.qrserver.com/v1/create-qr-code",
+		"data=https%3A%2F%2Fweddingofandricica.me%3Fcode%3D88219",
 		"Q.S. AR-RUM : 21",
 		"KODE CHECK-IN MASUK",
 		"Terdaftar Hadir",

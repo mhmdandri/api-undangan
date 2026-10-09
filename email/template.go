@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"net/url"
 	"strings"
 )
 
@@ -22,6 +23,7 @@ type WeddingEmailData struct {
 	VenueAddress         string
 	ReservationCode      string
 	ReservationDetailURL string
+	QRCodeURL            string
 	MapsURL              string
 	BrideName            string
 	GroomName            string
@@ -46,6 +48,10 @@ func DefaultWeddingEmailData(name, recipientEmail, code string, guests int) Wedd
 	if code != "" {
 		detailURL = fmt.Sprintf("https://weddingofandricica.me?code=%s", code)
 	}
+	qrCodeURL := fmt.Sprintf(
+		"https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=%s",
+		url.QueryEscape(detailURL),
+	)
 
 	return WeddingEmailData{
 		Name:                 trimmedName,
@@ -61,6 +67,7 @@ func DefaultWeddingEmailData(name, recipientEmail, code string, guests int) Wedd
 		VenueAddress:         "Jl. Turi Jaya Gang IV No 1, Sagara Makmur, Kec. Tarumajaya, Kab. Bekasi, Jawa Barat",
 		ReservationCode:      code,
 		ReservationDetailURL: detailURL,
+		QRCodeURL:            qrCodeURL,
 		MapsURL:              "https://maps.google.com/?q=Jl.+Turi+Jaya+Gang+IV+No+1+Sagara+Makmur+Kec.+Tarumajaya+Kab.+Bekasi",
 		BrideName:            "Cica Purwanti, S.Pd. Gr.",
 		GroomName:            "Muhamad Andriyansyah, S.Kom",
@@ -368,6 +375,19 @@ const ReservationTemplate = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transi
                 <a href="{{.MapsURL}}" target="_blank" rel="noopener noreferrer" style="color: #c5a059; text-decoration: underline;">
                   Google Maps
                 </a>
+              </p>
+            </td>
+          </tr>
+
+          <!-- RESERVATION QR CODE -->
+          <tr>
+            <td class="mobile-padding" align="center" style="padding: 0 28px 28px 28px; text-align: center;">
+              <p style="margin: 0 0 12px 0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #8e9ba8; line-height: 1.5;">
+                Scan QR code ini untuk membuka undangan digital Anda
+              </p>
+              <img src="{{.QRCodeURL}}" width="220" height="220" alt="QR Code undangan digital untuk {{.Name}}" style="display: block; width: 220px; height: 220px; margin: 0 auto; border: 8px solid #ffffff; background-color: #ffffff;" />
+              <p style="margin: 12px 0 0 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #64748b; line-height: 1.5;">
+                Kode reservasi: <strong style="color: #c5a059;">{{.ReservationCode}}</strong>
               </p>
             </td>
           </tr>
