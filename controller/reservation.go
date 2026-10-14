@@ -9,9 +9,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"math/rand"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -55,16 +57,114 @@ type GuestCheckInRequest struct {
 }
 
 func GetReservations(c *gin.Context) {
-	var reservations []models.Reservation
-	if err := database.DB.Order("created_at desc").Find(&reservations).Error; err != nil {
+	// Parse pagination parameters (default 25 per page)
+	pageStr := c.DefaultQuery("page", "1")
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = 1
+	}
+
+	limitStr := c.Query("limit")
+	if limitStr == "" {
+		limitStr = c.Query("per_page")
+	}
+
+	fetchAll := strings.EqualFold(c.Query("all"), "true") || limitStr == "-1" || strings.EqualFold(limitStr, "all")
+
+	limit := 25
+	if !fetchAll && limitStr != "" {
+		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 {
+			limit = parsedLimit
+		}
+	}
+
+	queryDB := database.DB.Model(&models.Reservation{})
+
+	// Optional search query parameter
+	q := strings.TrimSpace(c.Query("q"))
+	if q == "" {
+		q = strings.TrimSpace(c.Query("search"))
+	}
+	if q != "" {
+		pattern := "%" + strings.ToLower(q) + "%"
+		queryDB = queryDB.Where(
+			"LOWER(name) LIKE ? OR LOWER(code) LIKE ? OR LOWER(email) LIKE ? OR phone LIKE ?",
+			pattern, pattern, pattern, pattern,
+		)
+	}
+
+	// Optional status filter
+	status := strings.TrimSpace(c.Query("status"))
+	if status != "" && !strings.EqualFold(status, "all") {
+		queryDB = queryDB.Where("LOWER(status) = ?", strings.ToLower(status))
+	}
+
+	// Optional source filter
+	source := strings.TrimSpace(c.Query("source"))
+	if source != "" && !strings.EqualFold(source, "all") {
+		queryDB = queryDB.Where("LOWER(source) = ?", strings.ToLower(source))
+	}
+
+	var totalRecords int64
+	if err := queryDB.Count(&totalRecords).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to count reservations",
+		})
+		return
+	}
+
+	totalPages := 0
+	if fetchAll {
+		limit = int(totalRecords)
+		if limit <= 0 {
+			limit = 25
+		}
+		totalPages = 1
+	} else if limit > 0 {
+		totalPages = int(math.Ceil(float64(totalRecords) / float64(limit)))
+	}
+
+	reservations := make([]models.Reservation, 0)
+	execDB := queryDB.Order("created_at desc")
+
+	if !fetchAll {
+		offset := (page - 1) * limit
+		execDB = execDB.Offset(offset).Limit(limit)
+	}
+
+	if err := execDB.Find(&reservations).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to fetch reservations",
 		})
 		return
 	}
+
+	var hadirCount int64
+	var preRegCount int64
+	var selfRegCount int64
+	_ = database.DB.Model(&models.Reservation{}).Where("LOWER(status) = ? OR is_present = ?", "hadir", true).Count(&hadirCount).Error
+	_ = database.DB.Model(&models.Reservation{}).Where("LOWER(source) = ?", "pre_registered").Count(&preRegCount).Error
+	_ = database.DB.Model(&models.Reservation{}).Where("LOWER(source) != ? OR source IS NULL", "pre_registered").Count(&selfRegCount).Error
+
 	c.JSON(http.StatusOK, gin.H{
 		"data":    reservations,
 		"message": "Get reservations successfully!",
+		"pagination": gin.H{
+			"page":          page,
+			"limit":         limit,
+			"total_records": totalRecords,
+			"total_pages":   totalPages,
+		},
+		"total":       totalRecords,
+		"page":        page,
+		"limit":       limit,
+		"total_pages": totalPages,
+		"stats": gin.H{
+			"total":           totalRecords,
+			"hadir":           hadirCount,
+			"pre_registered":  preRegCount,
+			"self_registered": selfRegCount,
+		},
 	})
 }
 func FindReservationByCode(c *gin.Context) {
