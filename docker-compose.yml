@@ -43,8 +43,8 @@ volumes:
   pgdata:
     driver: local
 
-networks:
-  default:
-    name: undangan-andri_default
-    driver: bridge
-    external: true
+# networks:
+#   default:
+#     name: undangan-andri_default
+#     driver: bridge
+#     external: true

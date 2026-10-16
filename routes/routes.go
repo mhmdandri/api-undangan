@@ -25,6 +25,7 @@ func RegisterRoutes(r *gin.Engine) {
 
 		protected := api.Group("/")
 		protected.Use(middleware.AuthMiddleware())
+		protected.POST("/reservations/guest", controller.CreateManualReservation)
 		protected.POST("/reservations/confirm", controller.ConfirmReservation)
 	}
 }

@@ -43,6 +43,12 @@ type BatchReservationRequest struct {
 	Guests []BatchGuestItem `json:"guests" binding:"required"`
 }
 
+type ManualReservationRequest struct {
+	Name  string `json:"name" binding:"required"`
+	Email string `json:"email" binding:"omitempty,email"`
+	Phone string `json:"phone"`
+}
+
 type BatchReservationItemResponse struct {
 	models.Reservation
 	InviteURL string `json:"invite_url"`
@@ -692,6 +698,68 @@ func generateUniqueReservationCodeWithDB(db *gorm.DB) (string, error) {
 	return "", fmt.Errorf("exhausted unique reservation code generation attempts")
 }
 
+// CreateManualReservation adds one guest without requiring a spreadsheet import.
+func CreateManualReservation(c *gin.Context) {
+	var req ManualReservationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":  "Nama tamu wajib diisi dan format data tidak valid",
+			"detail": err.Error(),
+		})
+		return
+	}
+
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Nama tamu wajib diisi",
+		})
+		return
+	}
+
+	var reservation models.Reservation
+	for attempt := 0; attempt < maxReservationsCodeAttempts; attempt++ {
+		code, err := generateUniqueReservationCode()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Gagal membuat kode reservasi",
+			})
+			return
+		}
+
+		reservation = models.Reservation{
+			Name:        name,
+			Email:       strings.TrimSpace(req.Email),
+			Phone:       strings.TrimSpace(req.Phone),
+			Code:        code,
+			QuotaGuests: 1,
+			TotalGuests: 1,
+			IsPresent:   false,
+			Status:      "belum_konfirmasi",
+			Source:      "manual",
+		}
+
+		if err := database.DB.Create(&reservation).Error; err != nil {
+			if errors.Is(err, gorm.ErrDuplicatedKey) {
+				continue
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Gagal menyimpan data tamu",
+			})
+			return
+		}
+
+		c.JSON(http.StatusCreated, gin.H{
+			"data":    reservation,
+			"message": "Tamu berhasil ditambahkan",
+		})
+		return
+	}
+
+	c.JSON(http.StatusInternalServerError, gin.H{
+		"error": "Gagal membuat reservasi, silakan coba lagi",
+	})
+}
 
 // BatchCreateReservations handles bulk pre-registration for VIP / shared guests
 func BatchCreateReservations(c *gin.Context) {
