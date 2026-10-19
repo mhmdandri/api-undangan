@@ -62,14 +62,14 @@ func DefaultWeddingEmailData(name, recipientEmail, code string, guests int) Wedd
 		EventDate:            "21 November 2026",
 		EventTime:            "09.00 WIB – Selesai",
 		AkadTime:             "09.00 WIB",
-		ResepsiTime:          "11.00 WIB – Selesai",
-		VenueName:            "Turi Jaya Gang IV",
-		VenueAddress:         "Jl. Turi Jaya Gang IV No 1, Sagara Makmur, Kec. Tarumajaya, Kab. Bekasi, Jawa Barat",
+		ResepsiTime:          "12.00 WIB – Selesai",
+		VenueName:            "Gedung Serbaguna Segaramakmur",
+		VenueAddress:         "Jl. Marunda Makmur No.17, Sagara Makmur, Kec. Tarumajaya, Kab. Bekasi, Jawa Barat 17211",
 		ReservationCode:      code,
 		ReservationDetailURL: detailURL,
 		QRCodeURL:            qrCodeURL,
-		MapsURL:              "https://maps.google.com/?q=Jl.+Turi+Jaya+Gang+IV+No+1+Sagara+Makmur+Kec.+Tarumajaya+Kab.+Bekasi",
-		BrideName:            "Cica Purwanti, S.Pd. Gr.",
+		MapsURL:              "https://maps.app.goo.gl/mxLZjvFnnFAzKLKs6",
+		BrideName:            "Cica Purwanti, S.Pd, Gr.",
 		GroomName:            "Muhamad Andriyansyah, S.Kom",
 		CoupleNames:          "Andri & Cica",
 		Year:                 2026,
@@ -403,7 +403,7 @@ const ReservationTemplate = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transi
                 <a href="{{.ReservationDetailURL}}" target="_blank" style="color: #8e9ba8; text-decoration: underline;">weddingofandricica.me</a>.
               </p>
               <p style="margin: 0; font-size: 10px; color: #475569;">
-                &copy; {{.Year}} weddingofandricica.me &middot; All rights reserved.
+                &copy; {{.Year}} mohaproject &middot; All rights reserved.
               </p>
             </td>
           </tr>
