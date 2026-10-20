@@ -7,6 +7,8 @@ services:
     restart: unless-stopped
     ports:
       - "${APP_PORT_HOST:-8888}:8888"
+    networks:
+      - moha_network
     env_file:
       - path: .env
         required: false
@@ -43,8 +45,6 @@ volumes:
   pgdata:
     driver: local
 
-# networks:
-#   default:
-#     name: undangan-andri_default
-#     driver: bridge
-#     external: true
+networks:
+  moha_network:
+    external: true
