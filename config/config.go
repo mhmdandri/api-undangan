@@ -8,27 +8,35 @@ import (
 
 	"github.com/joho/godotenv"
 )
+
 type Config struct {
-	AppPort		string
+	AppPort      string
 	ClientOrigin string
-	DatabaseURL string
-	DBHost		string
-	DBPort		string
-	DBUser		string
-	DBPassword	string
-	DBName		string
-	DBSSLMode	string
-	JWTSecret string
+	DatabaseURL  string
+	DBHost       string
+	DBPort       string
+	DBUser       string
+	DBPassword   string
+	DBName       string
+	DBSSLMode    string
+	JWTSecret    string
 	JWTExpiresIn time.Duration
-	JWTIssuer string
-	JWTAudience string
-	MailtrapToken    string
-  MailtrapFromEmail string
-  MailtrapFromName  string
+	JWTIssuer    string
+	JWTAudience  string
+
+	// Legacy / Fallback Mailtrap
+	MailtrapToken     string
+	MailtrapFromEmail string
+	MailtrapFromName  string
+
+	// New Email Service (SMTP iCloud API)
+	EmailAPIURL string
+	EmailAPIKey string
 }
 
 var Cfg *Config
-func LoadConfig(){
+
+func LoadConfig() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("No .env file found, use environment variables instead")
@@ -37,16 +45,21 @@ func LoadConfig(){
 	if err != nil {
 		expiresIn = time.Hour * 24
 	}
-	
+
 	port := os.Getenv("APP_PORT")
 	if port == "" {
 		port = ":8888"
 	} else if !strings.HasPrefix(port, ":") {
 		port = ":" + port
 	}
-	
+
+	emailAPIURL := os.Getenv("EMAIL_API_URL")
+	if emailAPIURL == "" {
+		emailAPIURL = "http://127.0.0.1:8082/api/send-email"
+	}
+
 	Cfg = &Config{
-		AppPort:     port,
+		AppPort: port,
 		ClientOrigin: func() string {
 			if v := os.Getenv("CLIENT_ORIGIN"); v != "" {
 				return v
@@ -61,13 +74,16 @@ func LoadConfig(){
 		DBName:      os.Getenv("DB_NAME"),
 		DBSSLMode:   os.Getenv("DB_SSLMODE"),
 
-		JWTSecret:		 os.Getenv("JWT_SECRET"),
-		JWTExpiresIn:	 expiresIn,
-		JWTIssuer:		 os.Getenv("JWT_ISSUER"),
-		JWTAudience:	 os.Getenv("JWT_AUDIENCE"),
+		JWTSecret:    os.Getenv("JWT_SECRET"),
+		JWTExpiresIn: expiresIn,
+		JWTIssuer:    os.Getenv("JWT_ISSUER"),
+		JWTAudience:  os.Getenv("JWT_AUDIENCE"),
 
 		MailtrapToken:     os.Getenv("MAILTRAP_TOKEN"),
-    MailtrapFromEmail: os.Getenv("MAILTRAP_FROM_EMAIL"),
-    MailtrapFromName:  os.Getenv("MAILTRAP_FROM_NAME"),			
+		MailtrapFromEmail: os.Getenv("MAILTRAP_FROM_EMAIL"),
+		MailtrapFromName:  os.Getenv("MAILTRAP_FROM_NAME"),
+
+		EmailAPIURL: emailAPIURL,
+		EmailAPIKey: os.Getenv("EMAIL_API_KEY"),
 	}
 }

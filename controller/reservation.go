@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"math/rand"
 	"net/http"
@@ -496,90 +497,85 @@ func sendReservationEmailByProvider(r models.Reservation) {
 	if strings.TrimSpace(r.Email) == "" {
 		return
 	}
-	emailLower := strings.ToLower(strings.TrimSpace(r.Email))
-	if strings.HasSuffix(emailLower, "@icloud.com") || strings.HasSuffix(emailLower, "@me.com") || strings.HasSuffix(emailLower, "@mac.com") {
-		sendReservationEmailIcloud(r)
-		return
-	}
 	sendReservationEmail(r)
 }
 
 func sendReservationEmailIcloud(r models.Reservation) {
+	sendReservationEmail(r)
+}
+
+// EmailAPIPayload represents the payload required by the custom Email API (SMTP iCloud)
+type EmailAPIPayload struct {
+	To      string `json:"to"`
+	Subject string `json:"subject"`
+	Text    string `json:"text"`
+	Html    string `json:"html"`
+}
+
+func normalizeEmailAPIURL(rawURL string) string {
+	targetURL := strings.TrimSpace(rawURL)
+	if targetURL == "" {
+		targetURL = "http://127.0.0.1:8082/api/send-email"
+	}
+	if !strings.HasPrefix(targetURL, "http://") && !strings.HasPrefix(targetURL, "https://") {
+		targetURL = "http://" + targetURL
+	}
+	if !strings.HasSuffix(targetURL, "/api/send-email") {
+		targetURL = strings.TrimRight(targetURL, "/") + "/api/send-email"
+	}
+	return targetURL
+}
+
+func sendEmailViaAPI(to, subject, text, htmlContent string) error {
 	cfg := config.Cfg
-
-	if cfg.MailtrapToken == "" {
-		fmt.Println("MAILTRAP_TOKEN is empty, skip sending email")
-		return
+	if cfg == nil || strings.TrimSpace(cfg.EmailAPIKey) == "" {
+		return errors.New("EMAIL_API_KEY is empty")
 	}
-	url := "https://send.api.mailtrap.io/api/send"
 
-	data := email.DefaultWeddingEmailData(r.Name, r.Email, r.Code, r.TotalGuests)
-	htmlBody, err := email.BuildWeddingReservationEmailIcloud(data)
-	if err != nil {
-		fmt.Println("failed build icloud email template:", err)
-		return
-	}
-	textBody := email.BuildWeddingReservationPlainText(data)
+	targetURL := normalizeEmailAPIURL(cfg.EmailAPIURL)
 
-	payload := map[string]interface{}{
-		"from": map[string]string{
-			"email": cfg.MailtrapFromEmail,
-			"name":  cfg.MailtrapFromName,
-		},
-		"reply_to": map[string]string{
-			"email": cfg.MailtrapFromEmail,
-			"name":  cfg.MailtrapFromName,
-		},
-		"to": []map[string]string{
-			{
-				"email": r.Email,
-				"name":  r.Name,
-			},
-		},
-		"subject":  fmt.Sprintf("Konfirmasi Kehadiran: %s - The Wedding of Andri & Cica", r.Code),
-		"html":     htmlBody,
-		"text":     textBody,
-		"category": "Wedding Reservation",
-		"headers": map[string]string{
-			"X-Entity-Ref-ID": r.Code,
-		},
+	payload := EmailAPIPayload{
+		To:      to,
+		Subject: subject,
+		Text:    text,
+		Html:    htmlContent,
 	}
 
 	bodyBytes, err := json.Marshal(payload)
 	if err != nil {
-		fmt.Println("Failed to marshal Mailtrap payload:", err)
-		return
+		return fmt.Errorf("failed to marshal email payload: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(bodyBytes))
+	req, err := http.NewRequest("POST", targetURL, bytes.NewBuffer(bodyBytes))
 	if err != nil {
-		fmt.Println("Failed to create Mailtrap request:", err)
-		return
+		return fmt.Errorf("failed to create email request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+cfg.MailtrapToken)
+	req.Header.Set("X-API-Key", strings.TrimSpace(cfg.EmailAPIKey))
 
-	resp, err := http.DefaultClient.Do(req)
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Failed to send Mailtrap request:", err)
-		return
+		return fmt.Errorf("failed to call email API at %s: %w", targetURL, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		fmt.Println("Mailtrap returned non-2xx status for iCloud:", resp.Status)
-		return
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("email API returned status %s: %s", resp.Status, strings.TrimSpace(string(respBody)))
 	}
 
-	fmt.Println("Reservation email (iCloud) sent successfully to:", r.Email)
+	return nil
 }
 
 func sendReservationEmail(r models.Reservation) {
 	cfg := config.Cfg
-
-	if cfg.MailtrapToken == "" {
-		fmt.Println("MAILTRAP_TOKEN is empty, skip sending email")
+	if cfg == nil {
+		fmt.Println("Config is nil, skip sending email")
 		return
 	}
 
@@ -590,7 +586,29 @@ func sendReservationEmail(r models.Reservation) {
 		return
 	}
 	textBody := email.BuildWeddingReservationPlainText(data)
+	subject := fmt.Sprintf("Konfirmasi Kehadiran: %s - The Wedding of Andri & Cica", r.Code)
 
+	// Primary: Use new Email API (SMTP iCloud microservice)
+	if strings.TrimSpace(cfg.EmailAPIKey) != "" {
+		if err := sendEmailViaAPI(r.Email, subject, textBody, htmlBody); err != nil {
+			fmt.Printf("Failed to send reservation email to %s via Email API: %v\n", r.Email, err)
+			return
+		}
+		fmt.Printf("Reservation email sent successfully via Email API to: %s (Code: %s)\n", r.Email, r.Code)
+		return
+	}
+
+	// Fallback: Mailtrap
+	if strings.TrimSpace(cfg.MailtrapToken) != "" {
+		sendMailtrapEmail(r.Email, r.Name, subject, textBody, htmlBody, r.Code)
+		return
+	}
+
+	fmt.Println("EMAIL_API_KEY is empty, skip sending email")
+}
+
+func sendMailtrapEmail(toEmail, toName, subject, textBody, htmlBody, code string) {
+	cfg := config.Cfg
 	url := "https://send.api.mailtrap.io/api/send"
 
 	payload := map[string]interface{}{
@@ -604,16 +622,16 @@ func sendReservationEmail(r models.Reservation) {
 		},
 		"to": []map[string]string{
 			{
-				"email": r.Email,
-				"name":  r.Name,
+				"email": toEmail,
+				"name":  toName,
 			},
 		},
-		"subject":  fmt.Sprintf("Konfirmasi Kehadiran: %s - The Wedding of Andri & Cica", r.Code),
+		"subject":  subject,
 		"html":     htmlBody,
 		"text":     textBody,
 		"category": "Wedding Reservation",
 		"headers": map[string]string{
-			"X-Entity-Ref-ID": r.Code,
+			"X-Entity-Ref-ID": code,
 		},
 	}
 
@@ -644,7 +662,7 @@ func sendReservationEmail(r models.Reservation) {
 		return
 	}
 
-	fmt.Println("Reservation email sent successfully to:", r.Email)
+	fmt.Println("Reservation email sent successfully via Mailtrap to:", toEmail)
 }
 
 // PreviewReservationEmail lets anyone preview the rendered email (HTML or plain text) in browser
