@@ -396,11 +396,30 @@ func CreateReservation(c *gin.Context) {
 	}
 
 	reqCode := strings.TrimSpace(req.Code)
+	emailClean := strings.ToLower(strings.TrimSpace(req.Email))
+	phoneClean := strings.TrimSpace(req.Phone)
 
 	// JALUR 1: Jika request membawa kode reservasi (tamu pre-registered atau update RSVP)
 	if reqCode != "" {
 		var existing models.Reservation
 		if err := database.DB.Where("code = ?", reqCode).First(&existing).Error; err == nil {
+			// Cek apakah tamu sudah melakukan reservasi / konfirmasi kehadiran sebelumnya
+			if strings.EqualFold(existing.Status, "konfirmasi_hadir") || strings.EqualFold(existing.Status, "hadir") {
+				guestName := strings.TrimSpace(existing.Name)
+				msg := "Anda sudah melakukan konfirmasi kehadiran sebelumnya"
+				if guestName != "" {
+					msg = fmt.Sprintf("Halo %s, Anda sudah melakukan konfirmasi kehadiran sebelumnya", guestName)
+				}
+
+				c.JSON(http.StatusOK, gin.H{
+					"status":               "already_confirmed",
+					"message":              msg,
+					"data":                 existing,
+					"is_already_confirmed": true,
+				})
+				return
+			}
+
 			existing.Name = req.Name
 			if req.Email != "" {
 				existing.Email = strings.TrimSpace(req.Email)
@@ -429,6 +448,7 @@ func CreateReservation(c *gin.Context) {
 			}
 
 			c.JSON(http.StatusOK, gin.H{
+				"status":  "success",
 				"data":    existing,
 				"message": "Konfirmasi kehadiran berhasil disimpan",
 			})
@@ -436,7 +456,76 @@ func CreateReservation(c *gin.Context) {
 		}
 	}
 
-	// JALUR 2: Tamu Mandiri (Self-registered tanpa kode)
+	// JALUR 2: Cek berdasarkan Email atau Nomor Telepon jika tamu tidak memasukkan kode
+	var existingByContact models.Reservation
+	foundByContact := false
+
+	if emailClean != "" {
+		if err := database.DB.Where("LOWER(email) = ? AND email != ''", emailClean).First(&existingByContact).Error; err == nil {
+			foundByContact = true
+		}
+	}
+	if !foundByContact && phoneClean != "" {
+		if err := database.DB.Where("phone = ? AND phone != ''", phoneClean).First(&existingByContact).Error; err == nil {
+			foundByContact = true
+		}
+	}
+
+	if foundByContact {
+		// Jika kontak (email/telepon) sudah pernah melakukan konfirmasi kehadiran sebelumnya
+		if strings.EqualFold(existingByContact.Status, "konfirmasi_hadir") || strings.EqualFold(existingByContact.Status, "hadir") {
+			guestName := strings.TrimSpace(existingByContact.Name)
+			msg := "Anda sudah melakukan konfirmasi kehadiran sebelumnya"
+			if guestName != "" {
+				msg = fmt.Sprintf("Halo %s, Anda sudah melakukan konfirmasi kehadiran sebelumnya", guestName)
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"status":               "already_confirmed",
+				"message":              msg,
+				"data":                 existingByContact,
+				"is_already_confirmed": true,
+			})
+			return
+		}
+
+		// Jika ada data tapi statusnya belum_konfirmasi (misal data pre-registered dari panitia)
+		existingByContact.Name = req.Name
+		if req.Email != "" {
+			existingByContact.Email = strings.TrimSpace(req.Email)
+		}
+		if req.Phone != "" {
+			existingByContact.Phone = strings.TrimSpace(req.Phone)
+		}
+		if req.TotalGuests > 0 {
+			existingByContact.TotalGuests = req.TotalGuests
+		}
+		if *req.IsPresent {
+			existingByContact.Status = "konfirmasi_hadir"
+		} else {
+			existingByContact.Status = "tidak_datang"
+		}
+
+		if err := database.DB.Save(&existingByContact).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Gagal memperbarui konfirmasi reservasi",
+			})
+			return
+		}
+
+		if *req.IsPresent && strings.TrimSpace(existingByContact.Email) != "" {
+			go sendReservationEmailByProvider(existingByContact)
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"status":  "success",
+			"data":    existingByContact,
+			"message": "Konfirmasi kehadiran berhasil disimpan",
+		})
+		return
+	}
+
+	// JALUR 3: Tamu Mandiri Baru (Self-registered tanpa riwayat data sebelumnya)
 	var reservation models.Reservation
 	for attempt := 0; attempt < maxReservationsCodeAttempts; attempt++ {
 		code, err := generateUniqueReservationCode()
@@ -484,6 +573,7 @@ func CreateReservation(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusCreated, gin.H{
+			"status":  "success",
 			"data":    reservation,
 			"message": "Reservation created successfully",
 		})
