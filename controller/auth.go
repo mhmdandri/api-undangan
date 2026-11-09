@@ -6,6 +6,7 @@ import (
 	"api-undangan/database"
 	"api-undangan/models"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -40,8 +41,13 @@ func Login(c *gin.Context){
 		return
 	}
 	ttl := int(config.Cfg.JWTExpiresIn.Seconds())
-	domain := "localhost:3000"
-	c.SetCookie("token", token, ttl, "/", domain, true, true)
+	secure := c.Request.TLS != nil || strings.EqualFold(c.GetHeader("X-Forwarded-Proto"), "https") || strings.EqualFold(c.GetHeader("X-Forwarded-Scheme"), "https")
+	sameSite := http.SameSiteNoneMode
+	if !secure {
+		sameSite = http.SameSiteLaxMode
+	}
+	c.SetSameSite(sameSite)
+	c.SetCookie("token", token, ttl, "/", "", secure, true)
 	
 	c.JSON(http.StatusOK, gin.H{
 		"token": token,

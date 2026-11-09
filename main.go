@@ -13,7 +13,9 @@ import (
 func main() {
 	config.LoadConfig()
 	
-	config.LoadBadWords("config/badword.txt")
+	if err := config.LoadBadWords("config/badword.txt"); err != nil {
+		log.Println("Peringatan badwords:", err)
+	}
 
 	database.ConnectDB()
 	

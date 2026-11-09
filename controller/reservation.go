@@ -63,6 +63,12 @@ type GuestCheckInRequest struct {
 	ActualGuests int    `json:"actual_guests" binding:"omitempty,min=1,max=3"`
 }
 
+type UpdateReservationNameRequest struct {
+	ID   uint   `json:"id"`
+	Code string `json:"code"`
+	Name string `json:"name" binding:"required"`
+}
+
 func GetReservations(c *gin.Context) {
 	// Parse pagination parameters (default 25 per page)
 	pageStr := c.DefaultQuery("page", "1")
@@ -189,6 +195,98 @@ func FindReservationByCode(c *gin.Context) {
 	})
 }
 
+// UpdateReservationName updates ONLY the name column of a reservation.
+func UpdateReservationName(c *gin.Context) {
+	var req UpdateReservationNameRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "error",
+			"error":  "Format data tidak valid. Kolom 'name' wajib diisi.",
+			"detail": err.Error(),
+		})
+		return
+	}
+
+	newName := strings.TrimSpace(req.Name)
+	if newName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "error",
+			"error":  "Nama tidak boleh kosong",
+		})
+		return
+	}
+
+	if len(newName) > 100 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "error",
+			"error":  "Nama tidak boleh lebih dari 100 karakter",
+		})
+		return
+	}
+
+	idOrCode := strings.TrimSpace(c.Param("id"))
+	if idOrCode == "" {
+		if req.Code != "" {
+			idOrCode = strings.TrimSpace(req.Code)
+		} else if req.ID > 0 {
+			idOrCode = strconv.FormatUint(uint64(req.ID), 10)
+		}
+	}
+
+	if idOrCode == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "error",
+			"error":  "ID atau kode reservasi wajib disertakan pada URL parameter atau body request",
+		})
+		return
+	}
+
+	var reservation models.Reservation
+	var findErr error
+
+	if idNum, err := strconv.ParseUint(idOrCode, 10, 64); err == nil {
+		findErr = database.DB.Where("id = ?", idNum).First(&reservation).Error
+		if errors.Is(findErr, gorm.ErrRecordNotFound) {
+			findErr = database.DB.Where("code = ?", idOrCode).First(&reservation).Error
+		}
+	} else {
+		findErr = database.DB.Where("code = ?", idOrCode).First(&reservation).Error
+	}
+
+	if findErr != nil {
+		if errors.Is(findErr, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"status": "not_found",
+				"error":  "Data reservasi tidak ditemukan",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": "error",
+			"error":  "Gagal mencari data reservasi",
+		})
+		return
+	}
+
+	// Update HANYA kolom name
+	if err := database.DB.Model(&reservation).Update("name", newName).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": "error",
+			"error":  "Gagal memperbarui nama reservasi",
+			"detail": err.Error(),
+		})
+		return
+	}
+
+	reservation.Name = newName
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
+		"message": "Nama reservasi berhasil diperbarui",
+		"data":    reservation,
+	})
+}
+
 func ConfirmReservation(c *gin.Context) {
 	var req ConfirmReservationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -197,7 +295,13 @@ func ConfirmReservation(c *gin.Context) {
 		})
 		return
 	}
-	code := req.Code
+	code := strings.TrimSpace(req.Code)
+	if code == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "code wajib di isi",
+		})
+		return
+	}
 	var reservation models.Reservation
 	if err := database.DB.Where("code = ?", code).First(&reservation).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -391,6 +495,20 @@ func CreateReservation(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":  "Nama dan status kehadiran wajib diisi",
 			"detail": err.Error(),
+		})
+		return
+	}
+
+	req.Name = strings.TrimSpace(req.Name)
+	if req.Name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Nama wajib diisi",
+		})
+		return
+	}
+	if len(req.Name) > 100 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Nama maksimal 100 karakter",
 		})
 		return
 	}
@@ -821,6 +939,12 @@ func CreateManualReservation(c *gin.Context) {
 	if name == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Nama tamu wajib diisi",
+		})
+		return
+	}
+	if len(name) > 100 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Nama tamu maksimal 100 karakter",
 		})
 		return
 	}

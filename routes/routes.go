@@ -21,6 +21,10 @@ func RegisterRoutes(r *gin.Engine) {
 		api.POST("/reservations", controller.CreateReservation)
 		api.POST("/reservations/batch", controller.BatchCreateReservations)
 		api.GET("/reservations/:code", controller.FindReservationByCode)
+		api.PATCH("/reservations/:id", controller.UpdateReservationName)
+		api.PUT("/reservations/:id", controller.UpdateReservationName)
+		api.PATCH("/reservations", controller.UpdateReservationName)
+		api.PUT("/reservations", controller.UpdateReservationName)
 		api.POST("/login", controller.Login)
 
 		protected := api.Group("/")

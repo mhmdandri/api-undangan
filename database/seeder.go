@@ -29,15 +29,15 @@ func seedUsers(db *gorm.DB) {
         {Name: "User", Email: "user@mohaproject.dev", Password: user, Role: "user"},
     }
 
-    for _, user := range users {
-        if err := db.Where("email = ?", user.Email).
-            Assign(models.User{
-                Name:     user.Name,
-                Password: user.Password,
-                Role:     user.Role,
+    for _, u := range users {
+        if err := db.Where("email = ?", u.Email).
+            Attrs(models.User{
+                Name:     u.Name,
+                Password: u.Password,
+                Role:     u.Role,
             }).
-            FirstOrCreate(&user).Error; err != nil {
-            log.Printf("gagal membuat user %s: %v\n", user.Email, err)
+            FirstOrCreate(&u).Error; err != nil {
+            log.Printf("gagal membuat user %s: %v\n", u.Email, err)
         }
     }
 }

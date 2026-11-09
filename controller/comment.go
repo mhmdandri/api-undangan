@@ -60,6 +60,22 @@ func PostComment(c *gin.Context){
 		})
 		return
 	}
+	name := strings.TrimSpace(req.Name)
+	message := strings.TrimSpace(req.Message)
+	if name == "" || message == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Name dan message wajib di isi",
+		})
+		return
+	}
+	if len(name) > 100 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Name maksimal 100 karakter",
+		})
+		return
+	}
+	req.Name = name
+	req.Message = message
 	if config.ContainsBadword(req.Message) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Jangan berkata kasar ya kak",
