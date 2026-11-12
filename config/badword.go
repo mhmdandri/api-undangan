@@ -37,8 +37,12 @@ func ContainsBadword(message string) bool {
 		return false
 	}
 	msg := strings.ToLower(message)
+	// Add spaces for word boundary matching
+	paddedMsg := " " + msg + " "
 	for bad := range BadWords {
-		if strings.Contains(msg, bad) {
+		// Match whole words only: " bad " or at start/end with space
+		badPadded := " " + bad + " "
+		if strings.Contains(paddedMsg, badPadded) || msg == bad || strings.HasPrefix(msg, bad+" ") || strings.HasSuffix(msg, " "+bad) {
 			return true
 		}
 	}
